@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #07090e;
+    color: #e2e8f0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+}
+
+/* RETRO HACKER CTOS 2.0 ANIMATIONS */
+
+/* 1. CRT Scanline Sweep Animation */
+@keyframes scanlineSweep {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 100%;
+  }
+}
+
+.crt-scanlines {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0.5)
+  );
+  background-size: 100% 4px;
+  animation: scanlineSweep 10s linear infinite;
+}
+
+/* 2. Neon Pulsing Glow for Active Badges & Buttons */
+@keyframes neonPulse {
+  0%, 100% {
+    box-shadow: 0 0 8px currentColor, inset 0 0 4px currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 18px currentColor, inset 0 0 8px currentColor;
+    opacity: 0.85;
+  }
+}
+
+.animate-neon-pulse {
+  animation: neonPulse 2s ease-in-out infinite;
+}
+
+/* 3. Terminal Blinking Cursor */
+@keyframes cursorBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-cursor {
+  animation: cursorBlink 1s infinite;
+}
+
+/* 4. Smooth Card Glow Elevation on Hover */
+.hover-neon-glow {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-neon-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(0, 255, 102, 0.25);
+}
+
+/* Scrollbar Customization for Retro Hacker Look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #07090e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00ff66;
+}
