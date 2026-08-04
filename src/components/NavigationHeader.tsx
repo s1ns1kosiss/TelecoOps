@@ -17,20 +17,28 @@ import {
   LogIn,
   ShieldCheck,
   Terminal,
-  Activity
+  Activity,
+  Search,
+  Command,
+  Zap,
+  Grid
 } from 'lucide-react';
 
 interface ModuleTab {
+  id: string;
   name: string;
   code: string;
   href: string;
   icon: React.ElementType;
   accentColor: string;
+  hotkey: string;
 }
 
 export default function NavigationHeader() {
   const pathname = usePathname();
   const [clockTime, setClockTime] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showQuickMenu, setShowQuickMenu] = useState(false);
 
   useEffect(() => {
     const updateTime = () => {
@@ -43,91 +51,136 @@ export default function NavigationHeader() {
   }, []);
 
   const navTabs: ModuleTab[] = [
-    { name: 'NOC DESPACHO', code: '01_NOC', href: '/', icon: Radio, accentColor: '#00FF66' },
-    { name: 'CRM SUSCRIPTORES', code: '02_CRM', href: '/clientes', icon: Users, accentColor: '#00F0FF' },
-    { name: 'MAPA FTTH NAPs', code: '03_MAP', href: '/mapa-red', icon: Network, accentColor: '#FF5500' },
-    { name: 'WHATSAPP AI BOT', code: '04_BOT', href: '/whatsapp-bot', icon: Bot, accentColor: '#D946EF' },
-    { name: 'FACTURACIÓN MORA', code: '05_BILL', href: '/facturacion', icon: CreditCard, accentColor: '#FFB000' },
-    { name: 'CUADRILLAS STOCK', code: '06_CREW', href: '/cuadrillas', icon: Truck, accentColor: '#A855F7' },
-    { name: 'REPORTES BI', code: '07_BI', href: '/reportes', icon: BarChart3, accentColor: '#06B6D4' },
-    { name: 'BODEGA CENTRAL', code: '08_WH', href: '/inventario', icon: Package, accentColor: '#10B981' },
-    { name: 'PORTAL CLIENTE', code: '09_PORTAL', href: '/portal-cliente', icon: UserCheck, accentColor: '#3B82F6' },
-    { name: 'CONFIGURACIÓN RED', code: '10_CFG', href: '/configuracion', icon: Settings, accentColor: '#EF4444' },
-    { name: 'LOGIN RBAC', code: '11_AUTH', href: '/login', icon: LogIn, accentColor: '#EAB308' },
+    { id: '1', name: 'NOC DESPACHO', code: 'NOC', href: '/', icon: Radio, accentColor: '#00FF66', hotkey: 'F1' },
+    { id: '2', name: 'CRM SUSCRIPTORES', code: 'CRM', href: '/clientes', icon: Users, accentColor: '#00F0FF', hotkey: 'F2' },
+    { id: '3', name: 'MAPA FTTH NAPs', code: 'MAP', href: '/mapa-red', icon: Network, accentColor: '#FF5500', hotkey: 'F3' },
+    { id: '4', name: 'WHATSAPP AI BOT', code: 'BOT', href: '/whatsapp-bot', icon: Bot, accentColor: '#D946EF', hotkey: 'F4' },
+    { id: '5', name: 'FACTURACIÓN MORA', code: 'BILL', href: '/facturacion', icon: CreditCard, accentColor: '#FFB000', hotkey: 'F5' },
+    { id: '6', name: 'CUADRILLAS STOCK', code: 'CREW', href: '/cuadrillas', icon: Truck, accentColor: '#A855F7', hotkey: 'F6' },
+    { id: '7', name: 'REPORTES BI', code: 'BI', href: '/reportes', icon: BarChart3, accentColor: '#06B6D4', hotkey: 'F7' },
+    { id: '8', name: 'BODEGA CENTRAL', code: 'STOCK', href: '/inventario', icon: Package, accentColor: '#10B981', hotkey: 'F8' },
+    { id: '9', name: 'PORTAL CLIENTE', code: 'CLIENT', href: '/portal-cliente', icon: UserCheck, accentColor: '#3B82F6', hotkey: 'F9' },
+    { id: '10', name: 'CONFIGURACIÓN RED', code: 'CONFIG', href: '/configuracion', icon: Settings, accentColor: '#EF4444', hotkey: 'F10' },
+    { id: '11', name: 'LOGIN RBAC', code: 'AUTH', href: '/login', icon: LogIn, accentColor: '#EAB308', hotkey: 'F11' },
   ];
 
   const activeTab = navTabs.find((tab) => tab.href === pathname) || navTabs[0];
 
+  const filteredTabs = navTabs.filter((tab) =>
+    tab.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tab.code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <header className="sticky top-0 z-40 bg-[#05070A] border-b-2 border-[#00FF66] font-mono selection:bg-[#00FF66] selection:text-black shadow-[0_0_20px_rgba(0,255,102,0.2)]">
+    <header className="sticky top-0 z-40 bg-[#05070C] border-b-2 border-[#00FF66]/40 font-mono selection:bg-[#00FF66] selection:text-black shadow-[0_4px_30px_rgba(0,0,0,0.9)]">
       
-      {/* Top Cyber Terminal Prompt Bar */}
-      <div className="max-w-[1650px] mx-auto px-6 py-2 flex items-center justify-between border-b border-[#00FF66]/20 text-xs">
+      {/* Top DedSec System HUD Line */}
+      <div className="max-w-[1700px] mx-auto px-6 py-2.5 flex items-center justify-between border-b border-slate-900 text-xs">
         
-        {/* DedSec Shell Header */}
+        {/* Left System Title */}
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-6 h-6 bg-black border border-[#00FF66] rounded flex items-center justify-center text-[#00FF66] shadow-[0_0_8px_rgba(0,255,102,0.4)] group-hover:bg-[#00FF66] group-hover:text-black transition">
-              <Terminal className="w-3.5 h-3.5" />
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 bg-[#09101A] border-2 border-[#00FF66] rounded flex items-center justify-center text-[#00FF66] shadow-[0_0_12px_rgba(0,255,102,0.3)] group-hover:scale-105 transition">
+              <Terminal className="w-4 h-4" />
             </div>
-            <span className="font-bold text-white tracking-wider text-xs">
-              root@dedsec-ctos2.0:~# <span className="text-[#00FF66]">TELECO_OPS</span>
-            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white tracking-widest text-sm font-mono leading-none">
+                  DEDSEC<span className="text-[#00FF66]">//cTOS 2.0</span>
+                </span>
+                <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-ping" />
+              </div>
+              <span className="text-[9px] text-slate-400 font-mono block">TELECOM OPERATING SAAS</span>
+            </div>
           </Link>
 
-          <span className="text-slate-700 hidden md:inline">|</span>
+          <span className="text-slate-800 hidden md:inline">|</span>
 
-          {/* Active Module Bracket Display */}
-          <div className="hidden md:flex items-center gap-2 text-[11px]">
-            <span className="text-slate-400">// ACTIVE_MODULE:</span>
+          {/* Active Tab Accent Pill */}
+          <div className="hidden lg:flex items-center gap-2">
+            <span className="text-slate-500 text-[11px]">// CURRENT:</span>
             <span 
-              className="font-bold px-2 py-0.5 bg-black border rounded"
+              className="px-2.5 py-0.5 bg-black border rounded text-[11px] font-bold tracking-wider"
               style={{ color: activeTab.accentColor, borderColor: `${activeTab.accentColor}60` }}
             >
-              [ {activeTab.code}: {activeTab.name} ]
+              [{activeTab.code}] {activeTab.name}
             </span>
           </div>
         </div>
 
-        {/* Real-time System Telemetry */}
-        <div className="flex items-center gap-4 text-xs">
-          
-          {/* Clock */}
-          <div className="flex items-center gap-1.5 text-slate-300 text-[11px] bg-black px-2.5 py-1 rounded border border-[#00FF66]/30 font-mono">
-            <Activity className="w-3.5 h-3.5 text-[#00FF66] animate-pulse" />
-            <span>SYS_TIME: {clockTime || '18:27:00'}</span>
-          </div>
-
-          {/* Safety Status */}
-          <div className="flex items-center gap-1.5 bg-[#00FF66]/10 border border-[#00FF66]/40 text-[#00FF66] text-[10px] px-2.5 py-1 rounded font-bold">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>HARDWARE_MOCK: SECURE</span>
+        {/* Center Command Switcher Launcher */}
+        <div className="relative hidden md:block w-72">
+          <div className="relative flex items-center">
+            <Search className="w-3.5 h-3.5 absolute left-3 text-[#00FF66]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Escribe para filtrar módulos..."
+              className="w-full bg-[#090D15] border border-[#00FF66]/30 focus:border-[#00FF66] rounded pl-9 pr-8 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none transition shadow-[inset_0_0_8px_rgba(0,0,0,0.6)]"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 text-slate-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Right HUD Indicators */}
+        <div className="flex items-center gap-3 text-xs">
+          {/* Live System Time */}
+          <div className="flex items-center gap-1.5 text-slate-300 text-[11px] bg-black px-3 py-1 rounded border border-slate-800">
+            <Activity className="w-3.5 h-3.5 text-[#00FF66] animate-pulse" />
+            <span className="text-white font-bold">{clockTime || '18:31:00'}</span>
+          </div>
+
+          {/* Safety Isolated Badge */}
+          <div className="flex items-center gap-1.5 bg-[#00FF66]/10 border border-[#00FF66]/40 text-[#00FF66] text-[10px] px-2.5 py-1 rounded font-bold uppercase tracking-wider">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">HARDWARE: MOCK_SAFE</span>
+          </div>
+        </div>
+
       </div>
 
-      {/* Cyberpunk Module Tab Matrix */}
-      <nav className="max-w-[1650px] mx-auto px-6 py-2 overflow-x-auto no-scrollbar flex items-center gap-2">
-        {navTabs.map((tab) => {
+      {/* Cyberpunk HUD Navigation Bar (Hotbar Matrix) */}
+      <nav className="max-w-[1700px] mx-auto px-6 py-2 overflow-x-auto no-scrollbar flex items-center gap-2">
+        {filteredTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = pathname === tab.href;
 
           return (
             <Link
-              key={tab.href}
+              key={tab.id}
               href={tab.href}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono font-bold whitespace-nowrap transition-all border ${
+              className={`relative flex items-center gap-2 px-3 py-2 rounded text-xs font-mono font-bold whitespace-nowrap transition-all border group ${
                 isActive
-                  ? 'bg-black text-white border-2 shadow-[0_0_15px_rgba(0,255,102,0.3)] scale-[1.02]'
-                  : 'bg-[#090D15] text-slate-400 hover:text-white border-slate-800 hover:border-slate-700'
+                  ? 'bg-black text-white border-2 shadow-[0_0_16px_rgba(0,0,0,0.8)] scale-[1.03]'
+                  : 'bg-[#090E17]/90 text-slate-400 hover:text-white border-slate-800/90 hover:border-slate-700'
               }`}
               style={{
                 borderColor: isActive ? tab.accentColor : undefined,
                 color: isActive ? tab.accentColor : undefined,
               }}
             >
+              {/* Top Accent Line for Each Module */}
+              <span 
+                className="absolute top-0 left-0 right-0 h-0.5 rounded-t"
+                style={{ backgroundColor: tab.accentColor, opacity: isActive ? 1 : 0.4 }}
+              />
+
               <Icon className="w-3.5 h-3.5" style={{ color: tab.accentColor }} />
-              <span>[{tab.name}]</span>
+              
+              <span>{tab.name}</span>
+
+              {/* Hotkey Tag */}
+              <span className="text-[9px] text-slate-600 group-hover:text-slate-400 border border-slate-800 px-1 rounded font-mono">
+                {tab.hotkey}
+              </span>
             </Link>
           );
         })}
