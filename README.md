@@ -13,7 +13,40 @@ Permite conectar en una sola suite la gestión de tickets en terreno, el monitor
 
 ---
 
-## 📸 Estética & Módulos Integrados
+## 📐 Arquitectura & Especificaciones Técnicas
+
+TelecoOps implementa **Domain-Driven Design (DDD)**, patrones de abstracción de hardware y seguridad OWASP. Para revisar la especificación técnica completa orientada a arquitectos de software e ingenieros de red, consulta [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    PRESENTATION LAYER (Next.js 14 UI)                   │
+│         11 Retro Hacker Modules (NOC, CRM, OSS, BSS, AI Bot, BI)        │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │ HTTP / REST Fetch
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                   API CONTROLLER LAYER (Next.js Server)                 │
+│      OWASP Security Middleware • Rate Limiter • HMAC-SHA256 Webhooks     │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │ Domain Invocations
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                  DOMAIN SERVICES LAYER (Pure TypeScript)                │
+│    TicketService • AiTelecomBotService • BillingEngine • SafetyEngine   │
+└───────────────────┬─────────────────────────────────┬───────────────────┘
+                    │                                 │
+                    ▼                                 ▼
+┌────────────────────────────────────────┐ ┌─────────────────────────────┐
+│    HARDWARE ABSTRACTION LAYER (HAL)    │ │   PERSISTENCE LAYER (ORM)   │
+│  HardwareDriverFactory                 │ │   Prisma ORM Singleton      │
+│  ├─ MockHardwareDriver (DEV)           │ │   PostgreSQL 16 DB          │
+│  └─ RealHardwareDriver (PROD SSH/API)  │ │   Multi-Tenant Isolation    │
+└────────────────────────────────────────┘ └─────────────────────────────┘
+```
+
+---
+
+## 📸 Suite Completa de 11 Módulos Funcionales
 
 La plataforma cuenta con 11 módulos con estética **Retro Hacker (cTOS 2.0)**:
 
@@ -35,8 +68,8 @@ La plataforma cuenta con 11 módulos con estética **Retro Hacker (cTOS 2.0)**:
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/tu-usuario/telecoops.git
-cd telecoops
+git clone https://github.com/s1ns1kosiss/TelecoOps.git
+cd TelecoOps
 ```
 
 ### 2. Levantar la base de datos PostgreSQL en Docker
