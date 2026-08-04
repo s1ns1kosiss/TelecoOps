@@ -13,62 +13,44 @@ Permite conectar en una sola suite la gestión de tickets en terreno, el monitor
 
 ---
 
+## 📊 Estudio de Mercado & Modelo Comercial
+
+Revisa nuestro **Análisis de Mercado & Benchmarking** en [`MARKET_ANALYSIS.md`](./MARKET_ANALYSIS.md):
+- **Oportunidad de Mercado ($4,200M USD en LatAm)**.
+- **Matriz Comparativa de Competidores** (Wispro, Splynx, ISPFast, Sonar).
+- **Ventaja Diferencial Clave**: WhatsApp Voice AI para terrenos & Estética Watch Dogs 2.
+- **Estructura de Precios SaaS ($49, $149 y $499 USD/mes)**.
+
+---
+
 ## 🔬 Investigación & Roadmap de Innovación
 
-Revisa nuestro **Informe de Investigación Avanzada** en [`RESEARCH_AND_INNOVATION.md`](./RESEARCH_AND_INNOVATION.md) sobre:
-- **Protocolos TR-069 & TR-369 (USP)** para gestión remota universal de ONTs.
-- **Trazado Geoespacial GIS** para detección de cortes de fibra óptica por OTDR sobre mapa de calles.
-- **Arquitectura Micro-Frontend** y desacoplamiento de dominios.
-- **IA Local Edge (Whisper.cpp)** para transcripción offline de audios de técnicos en sub-segundos.
+Revisa nuestro **Informe de Investigación Avanzada** en [`RESEARCH_AND_INNOVATION.md`](./RESEARCH_AND_INNOVATION.md):
+- **Protocolos TR-069 & TR-369 (USP)** para gestión remota de ONTs.
+- **Trazado Geoespacial GIS** para detección de cortes de fibra por OTDR.
+- **IA Local Edge (Whisper.cpp)** para transcripción offline.
 
 ---
 
 ## 📐 Arquitectura & Especificaciones Técnicas
 
-TelecoOps implementa **Domain-Driven Design (DDD)**, patrones de abstracción de hardware y seguridad OWASP. Consulta la especificación técnica en [`ARCHITECTURE.md`](./ARCHITECTURE.md).
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    PRESENTATION LAYER (Next.js 14 UI)                   │
-│         11 Retro Hacker Modules (NOC, CRM, OSS, BSS, AI Bot, BI)        │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │ HTTP / REST Fetch
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                   API CONTROLLER LAYER (Next.js Server)                 │
-│      OWASP Security Middleware • Rate Limiter • HMAC-SHA256 Webhooks     │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │ Domain Invocations
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                  DOMAIN SERVICES LAYER (Pure TypeScript)                │
-│    TicketService • AiTelecomBotService • BillingEngine • SafetyEngine   │
-└───────────────────┬─────────────────────────────────┬───────────────────┘
-                    │                                 │
-                    ▼                                 ▼
-┌────────────────────────────────────────┐ ┌─────────────────────────────┐
-│    HARDWARE ABSTRACTION LAYER (HAL)    │ │   PERSISTENCE LAYER (ORM)   │
-│  HardwareDriverFactory                 │ │   Prisma ORM Singleton      │
-│  ├─ MockHardwareDriver (DEV)           │ │   PostgreSQL 16 DB          │
-│  └─ RealHardwareDriver (PROD SSH/API)  │ │   Multi-Tenant Isolation    │
-└────────────────────────────────────────┘ └─────────────────────────────┘
-```
+Consulta la especificación técnica de ingeniería en [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ---
 
 ## 📸 Suite Completa de 11 Módulos Funcionales
 
-- 🟢 **NOC Despacho (`/`)**: Tablero táctico de atenciones y consola interactiva (`root@dedsec:~#`).
-- 🔵 **CRM Suscriptores (`/clientes`)**: Ficha técnica del cliente y telemetría óptica en vivo (dBm).
-- 🟠 **Mapa FTTH NAPs (`/mapa-red`)**: Trazado GIS de cajas de empalme y matriz de 16 puertos libres/ocupados.
-- 🟣 **WhatsApp AI Bot (`/whatsapp-bot`)**: Transcriptor de audios con Whisper AI y extractor automático de series ONT.
-- 🟡 **Facturación Mora (`/facturacion`)**: Pagos online y reconexión automática tras cobro en MikroTik.
-- 🟤 **Cuadrillas Stock (`/cuadrillas`)**: Control de inventario en camionetas y descuento por ticket.
-- 🔷 **Reportes BI (`/reportes`)**: Métricas MTTR, disponibilidad de red (99.94% Uptime) y ARPU.
-- 🟩 **Bodega Central (`/inventario`)**: Valorización de stock principal y traspaso a vehículos.
-- 🟦 **Portal Cliente (`/portal-cliente`)**: Cambio de clave Wi-Fi remota y test de velocidad en vivo.
-- 🟥 **Configuración Red (`/configuracion`)**: Switch de Safety Engine (Mock vs Real) y registro de OLTs.
-- 🟨 **Login RBAC (`/login`)**: Inicio de sesión multi-tenant y selección rápida de roles.
+- 🟢 **NOC Despacho (`/`)**: Tablero táctico y consola interactiva (`root@dedsec:~#`).
+- 🔵 **CRM Suscriptores (`/clientes`)**: Ficha técnica y telemetría óptica en vivo (dBm).
+- 🟠 **Mapa FTTH NAPs (`/mapa-red`)**: Trazado GIS y matriz de 16 puertos.
+- 🟣 **WhatsApp AI Bot (`/whatsapp-bot`)**: Transcriptor de audios con Whisper AI.
+- 🟡 **Facturación Mora (`/facturacion`)**: Pagos online y reconexión MikroTik.
+- 🟤 **Cuadrillas Stock (`/cuadrillas`)**: Control de inventario en camionetas.
+- 🔷 **Reportes BI (`/reportes`)**: Métricas MTTR, Uptime 99.94% y ARPU.
+- 🟩 **Bodega Central (`/inventario`)**: Valorización de stock principal.
+- 🟦 **Portal Cliente (`/portal-cliente`)**: Cambio clave Wi-Fi y speedtest.
+- 🟥 **Configuración Red (`/configuracion`)**: Switch de Safety Engine.
+- 🟨 **Login RBAC (`/login`)**: Autenticación multi-tenant y roles.
 
 ---
 
@@ -102,7 +84,7 @@ Abre [`http://localhost:3000`](http://localhost:3000) en tu navegador.
 
 ## 🤝 ¿Cómo Colaborar? (Contributing)
 
-Revisa nuestra guía [`CONTRIBUTING.md`](./CONTRIBUTING.md) para enviar Pull Requests o proponer mejoras.
+Revisa nuestra guía [`CONTRIBUTING.md`](./CONTRIBUTING.md) para enviar Pull Requests.
 
 ---
 
