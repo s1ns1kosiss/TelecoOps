@@ -1,70 +1,67 @@
 import { NextResponse } from 'next/server';
-import { MockHardwareDriver } from '@/drivers/mocks/mock_hardware_driver';
-
-const driver = new MockHardwareDriver();
+import { db } from '@/lib/db';
 
 /**
  * BACKEND CONTROLLER: GET /api/subscribers
- * Retorna la lista de suscriptores con parámetros de red
+ * Consulta la lista real de suscriptores guardados en PostgreSQL.
  */
 export async function GET() {
-  const subscribers = [
-    {
-      id: '1',
-      code: 'SUB-1042',
-      name: 'Juan Pérez Residencial',
-      taxId: '16.892.412-K',
-      phone: '+56 9 8492 1042',
-      address: 'Av. Las Condes 10420, Dpto 42',
-      planName: 'Fibra Gamer Ultra',
-      status: 'ACTIVO',
-      ontSn: 'HWTC-99A821',
-      signalDbm: -19.4,
-      pppoeUser: 'juan_perez_ftth',
-    },
-    {
-      id: '2',
-      code: 'SUB-1088',
-      name: 'Supermercado Central B2B',
-      taxId: '76.120.400-3',
-      phone: '+56 9 5512 8812',
-      address: 'Calle San Martín 512',
-      planName: 'Fibra Empresa Dedicada',
-      status: 'MOROSO',
-      ontSn: 'ZTEG-88F410',
-      signalDbm: -26.2,
-      pppoeUser: 'super_central_b2b',
-    },
-  ];
+  try {
+    const customers = await db.customer.findMany({
+      include: {
+        subscriptions: {
+          include: {
+            plan: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-  return NextResponse.json({ success: true, count: subscribers.length, data: subscribers });
+    return NextResponse.json({ success: true, count: customers.length, data: customers });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }
 
 /**
  * BACKEND CONTROLLER: POST /api/subscribers
- * Ejecuta acciones remotas de red (Lectura dBm, Suspensión por mora, Reconexión)
+ * Registra un cliente real en la base de datos PostgreSQL.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, ontSn, pppoeUser } = body;
+    const { name, taxId, email, phone, address, tenantId } = body;
 
-    if (action === 'READ_SIGNAL') {
-      const readout = await driver.readOntSignal(ontSn || 'HWTC-MOCK');
-      return NextResponse.json({ success: true, readout });
+    if (!name || !taxId) {
+      return NextResponse.json({ success: false, error: 'Campos requeridos: name, taxId.' }, { status: 400 });
     }
 
-    if (action === 'SUSPEND') {
-      const res = await driver.suspendService(pppoeUser || 'user_ftth');
-      return NextResponse.json({ success: true, message: 'Servicio suspendido en MikroTik/OLT', result: res });
+    const defaultTenant = await db.tenant.findFirst();
+    const activeTenantId = tenantId || defaultTenant?.id;
+
+    if (!activeTenantId) {
+      return NextResponse.json({ success: false, error: 'No existe un Tenant activo en la DB.' }, { status: 400 });
     }
 
-    if (action === 'RESUME') {
-      const res = await driver.resumeService(pppoeUser || 'user_ftth');
-      return NextResponse.json({ success: true, message: 'Servicio restablecido', result: res });
-    }
+    const nameParts = name.trim().split(' ');
+    const firstName = nameParts[0] || 'Cliente';
+    const lastName = nameParts.slice(1).join(' ') || 'Residencial';
 
-    return NextResponse.json({ success: false, error: 'Acción no reconocida' }, { status: 400 });
+    const newCustomer = await db.customer.create({
+      data: {
+        tenantId: activeTenantId,
+        code: `SUB-${Math.floor(1000 + Math.random() * 9000)}`,
+        firstName,
+        lastName,
+        taxId,
+        email: email || `${taxId.replace(/[^a-zA-Z0-9]/g, '')}@telecom.cl`,
+        phone: phone || '+56900000000',
+        address: address || 'Av. Las Condes 10420, Dpto 42',
+      },
+    });
+
+    return NextResponse.json({ success: true, data: newCustomer });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

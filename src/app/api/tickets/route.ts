@@ -6,7 +6,7 @@ const ticketService = new TicketService();
 
 /**
  * BACKEND CONTROLLER: GET /api/tickets
- * Consulta tickets reales desde la base de datos PostgreSQL usando Prisma.
+ * Consulta la lista real de tickets guardados en PostgreSQL.
  */
 export async function GET() {
   try {
@@ -24,31 +24,47 @@ export async function GET() {
 
     return NextResponse.json({ success: true, count: tickets.length, data: tickets });
   } catch (error: any) {
-    // Si no se puede conectar a la DB en entorno aislado, cae suavemente al fallback
-    return NextResponse.json({ 
-      success: true, 
-      count: 2, 
-      data: [
-        {
-          id: '1',
-          ticketNumber: 'WD2-8492',
-          customerName: 'Juan Pérez - Residencial',
-          address: 'Av. Las Condes 10420, Dpto 42',
-          category: 'INSTALACION',
-          priority: 'MEDIA',
-          technician: 'Cuadrilla DedSec 2 (Carlos M.)',
-          status: 'EN_CURSO',
-          timeAgo: 'Hace 25 min',
-          signalDbm: -19.4,
-        },
-      ] 
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+/**
+ * BACKEND CONTROLLER: POST /api/tickets
+ * Crea un ticket real en la base de datos PostgreSQL.
+ */
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { title, description, category, priority, customerId } = body;
+
+    const defaultTenant = await db.tenant.findFirst();
+    const defaultCustomer = await db.customer.findFirst();
+
+    if (!defaultTenant) {
+      return NextResponse.json({ success: false, error: 'No existe un Tenant en la DB.' }, { status: 400 });
+    }
+
+    const newTicket = await db.ticket.create({
+      data: {
+        tenantId: defaultTenant.id,
+        ticketNumber: `WD2-${Math.floor(8000 + Math.random() * 1000)}`,
+        category: category || 'INSTALLATION',
+        priority: priority || 'MEDIUM',
+        status: 'OPEN',
+        description: description || title || 'Revisión de conexión de fibra óptica',
+        customerId: customerId || defaultCustomer?.id || '',
+      },
     });
+
+    return NextResponse.json({ success: true, data: newTicket });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
 /**
  * BACKEND CONTROLLER: PATCH /api/tickets
- * Cierra la orden de trabajo y actualiza el estado en la base de datos PostgreSQL.
+ * Cierra la orden de trabajo y actualiza el estado en PostgreSQL.
  */
 export async function PATCH(request: Request) {
   try {
