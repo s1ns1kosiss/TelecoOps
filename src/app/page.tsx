@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NavigationHeader from '@/components/NavigationHeader';
 import { 
   Radio, 
@@ -20,7 +20,8 @@ import {
   CornerDownRight,
   TrendingUp,
   Server,
-  Play
+  Play,
+  Plus
 } from 'lucide-react';
 
 interface MockTicket {
@@ -42,51 +43,48 @@ export default function TelecomDashboard() {
   const [terminalLogs, setTerminalLogs] = useState<string[]>([
     '// CTOS_2.0_RETRO_HACKER_OS initialized.',
     '// NETWORK_INFRASTRUCTURE: DEDSEC_TELECOM_NODE_01',
-    '// TYPE "help" OR CLICK BUTTONS TO EXECUTE OPERATIONAL COMMANDS.',
+    '// POSTGRESQL_PERSISTENCE: READY FOR REAL TICKETS AND LIVE DISPATCH.',
   ]);
 
-  const [tickets, setTickets] = useState<MockTicket[]>([
-    {
-      id: '1',
-      ticketNumber: 'WD2-8492',
-      customerName: 'Juan Pérez - Residencial',
-      address: 'Av. Las Condes 10420, Dpto 42',
-      category: 'INSTALACION',
-      priority: 'MEDIA',
-      technician: 'Cuadrilla DedSec 2 (Carlos M.)',
-      status: 'EN_CURSO',
-      timeAgo: 'Hace 25 min',
-      signalDbm: -19.4,
-      nodeCode: 'NAP_SF_01',
-    },
-    {
-      id: '2',
-      ticketNumber: 'WD2-8493',
-      customerName: 'Supermercado Central',
-      address: 'Calle San Martín 512',
-      category: 'FALLA_MASIVA',
-      priority: 'CRITICA',
-      technician: 'Sin Asignar',
-      status: 'ABIERTO',
-      timeAgo: 'Hace 5 min',
-      nodeCode: 'NAP_CTOS_MAIN',
-    },
-    {
-      id: '3',
-      ticketNumber: 'WD2-8488',
-      customerName: 'María González',
-      address: 'Pasaje El Roble 88',
-      category: 'REPARACION',
-      priority: 'ALTA',
-      technician: 'Cuadrilla DedSec 1 (Esteban R.)',
-      status: 'RESUELTO',
-      timeAgo: 'Hace 1 hora',
-      signalDbm: -20.1,
-      nodeCode: 'NAP_SOMA_04',
-    },
-  ]);
+  // Initialized EMPTY for 100% clean real testing
+  const [tickets, setTickets] = useState<MockTicket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(true);
 
   const [simulatingAudio, setSimulatingAudio] = useState(false);
+
+  useEffect(() => {
+    fetchTicketsFromDb();
+  }, []);
+
+  const fetchTicketsFromDb = async () => {
+    setLoadingTickets(true);
+    try {
+      const res = await fetch('/api/tickets');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        const mapped: MockTicket[] = data.data.map((t: any) => ({
+          id: t.id,
+          ticketNumber: t.ticketNumber || `WD2-${Math.floor(8000 + Math.random() * 1000)}`,
+          customerName: t.customer?.firstName 
+            ? `${t.customer.firstName} ${t.customer.lastName || ''}` 
+            : 'Cliente Registrado',
+          address: t.customer?.address || 'Dirección de Instalación',
+          category: t.category === 'INSTALLATION' ? 'INSTALACION' : t.category === 'REPAIR' ? 'REPARACION' : 'FALLA_MASIVA',
+          priority: t.priority === 'CRITICAL' ? 'CRITICA' : t.priority === 'HIGH' ? 'ALTA' : 'MEDIA',
+          technician: t.workOrders?.[0]?.technician?.name || 'Sin Asignar',
+          status: t.status === 'RESOLVED' ? 'RESUELTO' : t.status === 'IN_PROGRESS' ? 'EN_CURSO' : 'ABIERTO',
+          timeAgo: 'Justo ahora',
+          signalDbm: t.workOrders?.[0]?.dbmSignalMeasured || undefined,
+        }));
+
+        setTickets(mapped);
+      }
+    } catch (err: any) {
+      console.error('Error al consultar tickets en PostgreSQL:', err);
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
 
   const handleCommandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,15 +98,12 @@ export default function TelecomDashboard() {
         'COMMANDS AVAILABLE:',
         '  ping ont       - Pruebas de latencia y potencia de fibra',
         '  scan nap       - Escanear puertos ocupados en cajas NAP',
-        '  resolve tk-1   - Simular resolución de orden WD2-8492 por audio',
         '  clear          - Limpiar pantalla de consola'
       );
     } else if (cmd === 'ping ont') {
       newLogs.push('// PINGING ONT HWTC-99A821...', '--> Signal: -19.4 dBm [STABLE]', '--> RX: 2.4 Gbps / TX: 1.2 Gbps');
     } else if (cmd === 'scan nap') {
       newLogs.push('// SCANNING NAP_SF_01...', '[+] Port 01-12: BUSY (Active Customers)', '[+] Port 13-16: FREE (Available)');
-    } else if (cmd === 'resolve tk-1') {
-      runMockTechVoiceClosure();
     } else if (cmd === 'clear') {
       setTerminalLogs(['// CONSOLE CLEARED.']);
       setTerminalInput('');
@@ -121,32 +116,30 @@ export default function TelecomDashboard() {
     setTerminalInput('');
   };
 
-  const runMockTechVoiceClosure = () => {
-    setSimulatingAudio(true);
-    setTerminalLogs((prev) => [
-      ...prev,
-      '🎙️ // WHATSAPP_AUDIO_STREAM_RECEIVED: "Instalación lista en Av. Las Condes. ONT SN: HWTC-99A821"',
-      '⚡ // AI_PARSER: Extrayendo ONT SN: HWTC-99A821 | Status: OK',
-      '📡 // OLT_MOCK_DRIVER: Leyendo potencia de fibra en vivo...',
-    ]);
+  const handleCreateRealTicket = async () => {
+    try {
+      const res = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Instalación de Fibra Óptica Real',
+          description: 'Aprovisionamiento de ONT Huawei en domicilio del cliente',
+          category: 'INSTALLATION',
+          priority: 'MEDIUM',
+        }),
+      });
 
-    setTimeout(() => {
-      const dbm = (-19.1 - Math.random() * 2).toFixed(2);
-      setTerminalLogs((prev) => [
-        ...prev,
-        `🎯 // TELEMETRY_SUCCESS: Potencia en OLT = ${dbm} dBm [RANGO HEROICO DEDSEC]`,
-        '✔ // TICKET WD2-8492 CERRADO Y ASIGNADO A INVENTARIO AUTOMÁTICO.',
-      ]);
-
-      setTickets((prev) =>
-        prev.map((t) =>
-          t.id === '1'
-            ? { ...t, status: 'RESUELTO', signalDbm: parseFloat(dbm) }
-            : t
-        )
-      );
-      setSimulatingAudio(false);
-    }, 2500);
+      const data = await res.json();
+      if (data.success) {
+        setTerminalLogs((prev) => [
+          ...prev,
+          `✔ // TICKET REAL CREADO EN POSTGRESQL: ${data.data.ticketNumber}`,
+        ]);
+        await fetchTicketsFromDb();
+      }
+    } catch (err: any) {
+      console.error('Error al crear ticket real:', err);
+    }
   };
 
   return (
@@ -168,30 +161,31 @@ export default function TelecomDashboard() {
               MODULO: NOC DESPACHO & CONTROL DE OPERACIONES
             </span>
             <h2 className="text-base font-bold text-white mt-1">
-              Estética de Consola CRT Retro, Diagramas de Fibra y Comandos Interactivos
+              Consola de Operaciones Conectada en Tiempo Real a PostgreSQL
             </h2>
             <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
-              Combinación del estilo hacker underground de Marcus Holloway en San Francisco con la fluidez de un software moderno de operaciones de telecomunicaciones.
+              Los tickets y órdenes provienen de la base de datos real. Si ejecutas db:reset la lista queda vacía hasta crear nuevas órdenes.
             </p>
           </div>
 
-          <div className="text-xs text-[#00FF66] bg-slate-950 p-2.5 rounded border border-[#00FF66]/40 font-mono">
-            <pre className="text-[10px] leading-tight">
-{` [OLT_CENTRAL] ───(FIBER_DROP)───► [NAP_BOX] ───► [ONT_CLIENT]
- STATUS: OK | POTENCIA: -19.4 dBm | LATENCIA: 2ms`}
-            </pre>
-          </div>
+          <button
+            onClick={handleCreateRealTicket}
+            className="bg-[#00FF66] hover:bg-[#00DD55] text-black font-bold px-3.5 py-2 rounded text-xs uppercase flex items-center gap-1.5 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            CREAR TICKET REAL EN DB
+          </button>
         </div>
 
         {/* Retro KPI Telemetry Boxes */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
           <div className="p-4 bg-[#0B0F1A] border border-[#00FF66]/40 rounded hover:border-[#00FF66] transition shadow-[0_0_10px_rgba(0,255,102,0.1)]">
             <div className="flex justify-between items-center text-slate-400 text-[10px]">
-              <span>// ACTIVE_SUBSCRIBERS</span>
+              <span>// TICKETS EN POSTGRESQL</span>
               <Users className="w-4 h-4 text-[#00FF66]" />
             </div>
-            <h3 className="text-2xl font-bold text-white mt-1">4,892</h3>
-            <p className="text-[11px] text-[#00FF66] mt-0.5">↑ +14.2% [NODE_GROWTH]</p>
+            <h3 className="text-2xl font-bold text-white mt-1">{tickets.length}</h3>
+            <p className="text-[11px] text-[#00FF66] mt-0.5">DB: telecom_platform</p>
           </div>
 
           <div className="p-4 bg-[#0B0F1A] border border-cyan-500/40 rounded hover:border-cyan-400 transition shadow-[0_0_10px_rgba(0,240,255,0.1)]">
@@ -199,7 +193,7 @@ export default function TelecomDashboard() {
               <span>// FIBER_SIGNAL_LEVEL</span>
               <Wifi className="w-4 h-4 text-cyan-400" />
             </div>
-            <h3 className="text-2xl font-bold text-cyan-300 mt-1">-19.8 dBm</h3>
+            <h3 className="text-2xl font-bold text-cyan-300 mt-1">-19.4 dBm</h3>
             <p className="text-[11px] text-cyan-400/80 mt-0.5">[OPTIMAL_RANGE]</p>
           </div>
 
@@ -208,8 +202,8 @@ export default function TelecomDashboard() {
               <span>// FIELD_WORK_ORDERS</span>
               <Wrench className="w-4 h-4 text-amber-400" />
             </div>
-            <h3 className="text-2xl font-bold text-amber-300 mt-1">12</h3>
-            <p className="text-[11px] text-amber-400/80 mt-0.5">8 ACTIVE • 4 QUEUED</p>
+            <h3 className="text-2xl font-bold text-amber-300 mt-1">{tickets.filter(t => t.status !== 'RESUELTO').length}</h3>
+            <p className="text-[11px] text-amber-400/80 mt-0.5">PENDIENTES EN COLA</p>
           </div>
 
           <div className="p-4 bg-[#0B0F1A] border border-purple-500/40 rounded hover:border-purple-400 transition shadow-[0_0_10px_rgba(168,85,247,0.1)]">
@@ -217,8 +211,8 @@ export default function TelecomDashboard() {
               <span>// SLA_COMPLIANCE</span>
               <Activity className="w-4 h-4 text-purple-400" />
             </div>
-            <h3 className="text-2xl font-bold text-purple-300 mt-1">98.2%</h3>
-            <p className="text-[11px] text-emerald-400 mt-0.5">MTTR: 42 MIN</p>
+            <h3 className="text-2xl font-bold text-purple-300 mt-1">99.94%</h3>
+            <p className="text-[11px] text-emerald-400 mt-0.5">MTTR: 34 MIN</p>
           </div>
         </div>
 
@@ -230,60 +224,78 @@ export default function TelecomDashboard() {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-white flex items-center gap-2 uppercase">
                 <CornerDownRight className="w-4 h-4 text-[#00FF66]" />
-                // DISPATCH_QUEUE (DEDSEC_CREWS)
+                // DISPATCH_QUEUE (POSTGRESQL DB)
               </h2>
               <span className="text-[10px] text-[#00FF66] bg-black px-2.5 py-0.5 rounded border border-[#00FF66]/40">
                 WHATSAPP_BOT: ONLINE
               </span>
             </div>
 
-            <div className="space-y-3">
-              {tickets.map((t) => (
-                <div 
-                  key={t.id}
-                  className="p-4 bg-[#0A0D15] border border-[#00FF66]/30 hover:border-[#00FF66] rounded transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+            {loadingTickets ? (
+              <div className="p-8 bg-[#0A0D15] border border-[#00FF66]/30 rounded text-center text-xs font-mono text-[#00FF66] animate-pulse">
+                📡 Consultando tickets en la base de datos PostgreSQL...
+              </div>
+            ) : tickets.length === 0 ? (
+              <div className="p-8 bg-[#0A0D15] border border-[#00FF66]/30 rounded text-center space-y-2">
+                <p className="text-sm font-bold text-white font-mono">📭 COLA DE DESPACHO VACÍA</p>
+                <p className="text-xs text-slate-400">No hay tickets activos en la base de datos tras la limpieza.</p>
+                <button
+                  onClick={handleCreateRealTicket}
+                  className="mt-2 px-3 py-1.5 bg-[#00FF66] text-black font-bold rounded text-xs uppercase inline-flex items-center gap-1.5"
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 text-xs font-bold bg-black text-[#00FF66] border border-[#00FF66]/40 rounded">
-                        {t.ticketNumber}
-                      </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        t.priority === 'CRITICA' ? 'bg-red-950 text-red-400 border border-red-800' :
-                        t.priority === 'ALTA' ? 'bg-amber-950 text-amber-400 border border-amber-800' :
-                        'bg-slate-900 text-slate-300 border border-slate-700'
+                  <Plus className="w-4 h-4" />
+                  CREAR PRIMER TICKET REAL
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tickets.map((t) => (
+                  <div 
+                    key={t.id}
+                    className="p-4 bg-[#0A0D15] border border-[#00FF66]/30 hover:border-[#00FF66] rounded transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 text-xs font-bold bg-black text-[#00FF66] border border-[#00FF66]/40 rounded">
+                          {t.ticketNumber}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          t.priority === 'CRITICA' ? 'bg-red-950 text-red-400 border border-red-800' :
+                          t.priority === 'ALTA' ? 'bg-amber-950 text-amber-400 border border-amber-800' :
+                          'bg-slate-900 text-slate-300 border border-slate-700'
+                        }`}>
+                          [{t.priority}]
+                        </span>
+                        <span className="text-xs text-slate-400">• {t.category}</span>
+                      </div>
+
+                      <h4 className="font-bold text-sm text-white">{t.customerName}</h4>
+                      <p className="text-xs text-slate-400">{t.address}</p>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-right">
+                      <div>
+                        <p className="text-[10px] text-[#00FF66] uppercase">// CREW</p>
+                        <p className="text-xs font-bold text-white">{t.technician}</p>
+                        {t.signalDbm && (
+                          <p className="text-xs text-cyan-300 font-bold mt-0.5">
+                            SIGNAL: {t.signalDbm} dBm
+                          </p>
+                        )}
+                      </div>
+
+                      <span className={`px-3 py-1 rounded text-xs font-bold ${
+                        t.status === 'RESUELTO' ? 'bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40' :
+                        t.status === 'EN_CURSO' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' :
+                        'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                       }`}>
-                        [{t.priority}]
+                        {t.status}
                       </span>
-                      <span className="text-xs text-slate-400">• {t.category}</span>
                     </div>
-
-                    <h4 className="font-bold text-sm text-white">{t.customerName}</h4>
-                    <p className="text-xs text-slate-400">{t.address}</p>
                   </div>
-
-                  <div className="flex items-center gap-4 text-right">
-                    <div>
-                      <p className="text-[10px] text-[#00FF66] uppercase">// CREW</p>
-                      <p className="text-xs font-bold text-white">{t.technician}</p>
-                      {t.signalDbm && (
-                        <p className="text-xs text-cyan-300 font-bold mt-0.5">
-                          SIGNAL: {t.signalDbm} dBm
-                        </p>
-                      )}
-                    </div>
-
-                    <span className={`px-3 py-1 rounded text-xs font-bold ${
-                      t.status === 'RESUELTO' ? 'bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40' :
-                      t.status === 'EN_CURSO' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' :
-                      'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    }`}>
-                      {t.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* RETRO CONSOLE & COMMAND PROMPT WIDGET */}
@@ -295,7 +307,7 @@ export default function TelecomDashboard() {
                   <h3 className="font-bold text-xs uppercase tracking-wider">// DEDSEC_TERMINAL_PROMPT</h3>
                 </div>
                 <span className="text-[9px] bg-[#00FF66]/10 text-[#00FF66] px-2 py-0.5 rounded border border-[#00FF66]/30">
-                  INTERACTIVE
+                  POSTGRESQL_LIVE
                 </span>
               </div>
 
@@ -318,85 +330,8 @@ export default function TelecomDashboard() {
                 />
               </form>
             </div>
-
-            {/* Quick Trigger Button */}
-            <button
-              onClick={runMockTechVoiceClosure}
-              disabled={simulatingAudio}
-              className="w-full py-2.5 px-4 bg-[#00FF66] hover:bg-[#00CC52] text-black font-bold text-xs uppercase tracking-wider rounded transition flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {simulatingAudio ? (
-                <>
-                  <Zap className="w-4 h-4 animate-spin text-black" />
-                  EJECUTANDO AUDIO DE TÉCNICO...
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-black text-black" />
-                  SIMULAR AUDIO DE TÉCNICO (WD2-8492)
-                </>
-              )}
-            </button>
           </div>
 
-        </div>
-
-        {/* cTOS FTTH Network Hardware Status */}
-        <div className="p-5 bg-black border border-[#00FF66]/40 rounded space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-white flex items-center gap-2">
-              <Server className="w-4 h-4 text-[#00FF66]" />
-              // cTOS_2.0_HARDWARE_INFRASTRUCTURE (FTTH OLTs)
-            </h3>
-            <span className="text-[10px] text-[#00FF66] font-bold">4 OLTs OPERATIONAL</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-            <div className="p-3 bg-[#06080E] border border-[#00FF66]/30 rounded space-y-2">
-              <div className="flex justify-between items-center text-slate-200">
-                <span className="font-bold">OLT-CENTRAL-01 (Huawei)</span>
-                <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-ping" />
-              </div>
-              <p className="text-[11px] text-slate-400">IP: 10.0.1.10 • 8 PON PORTS</p>
-              <div className="w-full bg-slate-900 h-2 rounded overflow-hidden">
-                <div className="bg-[#00FF66] h-full w-[65%]" />
-              </div>
-              <div className="flex justify-between text-[10px] text-[#00FF66]">
-                <span>LOAD: 65%</span>
-                <span>1,024 ONUs</span>
-              </div>
-            </div>
-
-            <div className="p-3 bg-[#06080E] border border-cyan-500/30 rounded space-y-2">
-              <div className="flex justify-between items-center text-slate-200">
-                <span className="font-bold">OLT-NORTE-02 (ZTE)</span>
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
-              </div>
-              <p className="text-[11px] text-slate-400">IP: 10.0.2.10 • 4 PON PORTS</p>
-              <div className="w-full bg-slate-900 h-2 rounded overflow-hidden">
-                <div className="bg-cyan-400 h-full w-[42%]" />
-              </div>
-              <div className="flex justify-between text-[10px] text-cyan-400">
-                <span>LOAD: 42%</span>
-                <span>512 ONUs</span>
-              </div>
-            </div>
-
-            <div className="p-3 bg-[#06080E] border border-amber-500/30 rounded space-y-2">
-              <div className="flex justify-between items-center text-slate-200">
-                <span className="font-bold">OLT-SUR-03 (V-SOL)</span>
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-              </div>
-              <p className="text-[11px] text-slate-400">IP: 10.0.3.10 • 16 PON PORTS</p>
-              <div className="w-full bg-slate-900 h-2 rounded overflow-hidden">
-                <div className="bg-amber-400 h-full w-[88%]" />
-              </div>
-              <div className="flex justify-between text-[10px] text-amber-400">
-                <span>LOAD: 88%</span>
-                <span>1,840 ONUs</span>
-              </div>
-            </div>
-          </div>
         </div>
 
       </main>
