@@ -13,9 +13,19 @@ Permite conectar en una sola suite la gestión de tickets en terreno, el monitor
 
 ---
 
+## 🔬 Investigación & Roadmap de Innovación
+
+Revisa nuestro **Informe de Investigación Avanzada** en [`RESEARCH_AND_INNOVATION.md`](./RESEARCH_AND_INNOVATION.md) sobre:
+- **Protocolos TR-069 & TR-369 (USP)** para gestión remota universal de ONTs.
+- **Trazado Geoespacial GIS** para detección de cortes de fibra óptica por OTDR sobre mapa de calles.
+- **Arquitectura Micro-Frontend** y desacoplamiento de dominios.
+- **IA Local Edge (Whisper.cpp)** para transcripción offline de audios de técnicos en sub-segundos.
+
+---
+
 ## 📐 Arquitectura & Especificaciones Técnicas
 
-TelecoOps implementa **Domain-Driven Design (DDD)**, patrones de abstracción de hardware y seguridad OWASP. Para revisar la especificación técnica completa orientada a arquitectos de software e ingenieros de red, consulta [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+TelecoOps implementa **Domain-Driven Design (DDD)**, patrones de abstracción de hardware y seguridad OWASP. Consulta la especificación técnica en [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -47,8 +57,6 @@ TelecoOps implementa **Domain-Driven Design (DDD)**, patrones de abstracción de
 ---
 
 ## 📸 Suite Completa de 11 Módulos Funcionales
-
-La plataforma cuenta con 11 módulos con estética **Retro Hacker (cTOS 2.0)**:
 
 - 🟢 **NOC Despacho (`/`)**: Tablero táctico de atenciones y consola interactiva (`root@dedsec:~#`).
 - 🔵 **CRM Suscriptores (`/clientes`)**: Ficha técnica del cliente y telemetría óptica en vivo (dBm).
@@ -94,7 +102,7 @@ Abre [`http://localhost:3000`](http://localhost:3000) en tu navegador.
 
 ## 🤝 ¿Cómo Colaborar? (Contributing)
 
-¡Todas las contribuciones son bienvenidas! Revisa nuestra guía [`CONTRIBUTING.md`](./CONTRIBUTING.md) para enviar Pull Requests, agregar nuevos adaptadores de OLTs/MikroTik o proponer mejoras de interfaz.
+Revisa nuestra guía [`CONTRIBUTING.md`](./CONTRIBUTING.md) para enviar Pull Requests o proponer mejoras.
 
 ---
 
