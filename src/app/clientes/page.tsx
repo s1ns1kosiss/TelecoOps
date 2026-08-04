@@ -19,7 +19,7 @@ import {
   CornerDownRight,
   Plus
 } from 'lucide-react';
-import { MockHardwareDriver } from '@/drivers/mocks/mock_hardware_driver';
+import { getHardwareDriver } from '@/drivers/hardware_driver.factory';
 
 interface CustomerSubscriber {
   id: string;
@@ -40,49 +40,14 @@ interface CustomerSubscriber {
 }
 
 export default function SubscribersPage() {
-  const driver = new MockHardwareDriver();
+  const driver = getHardwareDriver();
 
-  const [subscribers, setSubscribers] = useState<CustomerSubscriber[]>([
-    {
-      id: '1',
-      code: 'SUB-1042',
-      name: 'Juan Pérez Residencial',
-      taxId: '16.892.412-K',
-      phone: '+56 9 8492 1042',
-      address: 'Av. Las Condes 10420, Dpto 42',
-      planName: 'Fibra Gamer Ultra',
-      speed: '940 Mbps / 940 Mbps Simétrico',
-      monthlyPrice: 29990,
-      status: 'ACTIVO',
-      ontSn: 'HWTC-99A821',
-      napBox: 'NAP-LAS-CONDES-04 (Puerto 08)',
-      signalDbm: -19.4,
-      ipAddress: '192.168.10.142',
-      pppoeUser: 'juan_perez_ftth',
-    },
-    {
-      id: '2',
-      code: 'SUB-1088',
-      name: 'Supermercado Central B2B',
-      taxId: '76.120.400-3',
-      phone: '+56 9 5512 8812',
-      address: 'Calle San Martín 512',
-      planName: 'Fibra Empresa Dedicada',
-      speed: '2000 Mbps / 2000 Mbps',
-      monthlyPrice: 120000,
-      status: 'MOROSO',
-      ontSn: 'ZTEG-88F410',
-      napBox: 'NAP-CENTRO-01 (Puerto 02)',
-      signalDbm: -26.2,
-      ipAddress: '192.168.10.200',
-      pppoeUser: 'super_central_b2b',
-    },
-  ]);
-
-  const [selectedSub, setSelectedSub] = useState<CustomerSubscriber | null>(subscribers[0]);
+  const [subscribers, setSubscribers] = useState<CustomerSubscriber[]>([]);
+  const [selectedSub, setSelectedSub] = useState<CustomerSubscriber | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
   const [actionLog, setActionLog] = useState<string[]>([
     '// CRM_MODULE_INITIALIZED: DEDSEC_SUBSCRIBER_DATABASE',
-    '// DATABASE_PERSISTENCE: READY FOR REAL CUSTOMER REGISTRATION IN POSTGRESQL.',
+    '// POSTGRESQL_PERSISTENCE: FETCHING LIVE SUBSCRIBERS FROM DATABASE...',
   ]);
   const [loadingAction, setLoadingAction] = useState(false);
 
@@ -91,6 +56,51 @@ export default function SubscribersPage() {
   const [newSubName, setNewSubName] = useState('');
   const [newSubTaxId, setNewSubTaxId] = useState('');
   const [newSubAddress, setNewSubAddress] = useState('');
+
+  // Fetch real subscribers from PostgreSQL on mount
+  useEffect(() => {
+    fetchSubscribersFromDb();
+  }, []);
+
+  const fetchSubscribersFromDb = async () => {
+    setLoadingData(true);
+    try {
+      const res = await fetch('/api/subscribers');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        const mapped: CustomerSubscriber[] = data.data.map((c: any) => ({
+          id: c.id,
+          code: c.code || 'SUB-1001',
+          name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Cliente Sin Nombre',
+          taxId: c.taxId || 'N/A',
+          phone: c.phone || '+56900000000',
+          address: c.address || 'Sin dirección',
+          planName: c.subscriptions?.[0]?.plan?.name || 'Plan Fibra Base',
+          speed: c.subscriptions?.[0]?.plan?.downloadSpeedMbps 
+            ? `${c.subscriptions[0].plan.downloadSpeedMbps} Mbps Simétrico` 
+            : '500 Mbps Simétrico',
+          monthlyPrice: c.subscriptions?.[0]?.plan?.monthlyPrice || 24990,
+          status: c.status === 'SUSPENDED' ? 'SUSPENDIDO' : c.status === 'DEBTOR' ? 'MOROSO' : 'ACTIVO',
+          ontSn: c.subscriptions?.[0]?.ontSerialNumber || 'HWTC-99A821',
+          napBox: c.subscriptions?.[0]?.napBoxId || 'NAP-CENTRO-01',
+          signalDbm: -19.4,
+          ipAddress: c.subscriptions?.[0]?.ipAddress || '192.168.10.100',
+          pppoeUser: c.subscriptions?.[0]?.pppoeUser || `user_${c.taxId.replace(/[^a-zA-Z0-9]/g, '')}`,
+        }));
+
+        setSubscribers(mapped);
+        if (mapped.length > 0) setSelectedSub(mapped[0]);
+        setActionLog((prev) => [
+          ...prev,
+          `✔ // POSTGRESQL_FETCH_SUCCESS: ${mapped.length} suscriptor(es) reales cargados desde la base de datos.`,
+        ]);
+      }
+    } catch (err: any) {
+      setActionLog((prev) => [...prev, `❌ Error al consultar PostgreSQL: ${err.message}`]);
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   const handleCreateRealSubscriber = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,36 +125,16 @@ export default function SubscribersPage() {
 
       const data = await res.json();
       if (data.success) {
-        const createdCustomer = data.data;
-        const newSubItem: CustomerSubscriber = {
-          id: createdCustomer.id,
-          code: createdCustomer.code || `SUB-${Math.floor(1000 + Math.random() * 9000)}`,
-          name: `${createdCustomer.firstName} ${createdCustomer.lastName}`,
-          taxId: createdCustomer.taxId,
-          phone: createdCustomer.phone || '+56 9 8888 7777',
-          address: createdCustomer.address,
-          planName: 'Fibra Pro 500M Real',
-          speed: '500 Mbps Simétrico',
-          monthlyPrice: 22990,
-          status: 'ACTIVO',
-          ontSn: `HWTC-REAL-${Math.floor(100 + Math.random() * 900)}`,
-          napBox: 'NAP-CENTRO-02 (Puerto 01)',
-          signalDbm: -18.8,
-          ipAddress: '192.168.10.199',
-          pppoeUser: `user_${createdCustomer.taxId.replace(/[^a-zA-Z0-9]/g, '')}`,
-        };
-
-        setSubscribers((prev) => [newSubItem, ...prev]);
-        setSelectedSub(newSubItem);
         setActionLog((prev) => [
           ...prev,
-          `✔ // CLIENTE REAL GUARDADO EN POSTGRESQL: ID=${createdCustomer.id}`,
+          `✔ // CLIENTE REAL GUARDADO EN POSTGRESQL: ID=${data.data.id}`,
         ]);
 
         setNewSubName('');
         setNewSubTaxId('');
         setNewSubAddress('');
         setShowAddForm(false);
+        await fetchSubscribersFromDb();
       }
     } catch (err: any) {
       setActionLog((prev) => [...prev, `❌ Error al guardar en DB: ${err.message}`]);
@@ -227,8 +217,8 @@ export default function SubscribersPage() {
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-[#00F0FF]" />
             <div>
-              <span className="font-bold text-white uppercase">// MÓDULO BSS: GESTIÓN DE SUSCRIPTORES & PERSISTENCIA EN POSTGRESQL</span>
-              <p className="text-[11px] text-slate-400">Registra clientes reales que se guardan directamente en PostgreSQL o mide las potencias ópticas en tiempo real.</p>
+              <span className="font-bold text-white uppercase">// MÓDULO BSS: GESTIÓN DE SUSCRIPTORES REALES EN POSTGRESQL</span>
+              <p className="text-[11px] text-slate-400">Los datos provienen directamente de tu base de datos PostgreSQL en Docker. Si usas db:reset la lista queda vacía hasta crear registros.</p>
             </div>
           </div>
           <button
@@ -314,57 +304,75 @@ export default function SubscribersPage() {
             <div className="flex items-center justify-between text-xs font-bold text-white uppercase">
               <span className="flex items-center gap-2">
                 <CornerDownRight className="w-4 h-4 text-[#00F0FF]" />
-                Directorio de Suscriptores de Fibra
+                Directorio de Suscriptores en PostgreSQL
               </span>
               <span className="text-slate-400">Total: {subscribers.length} Suscriptor(es)</span>
             </div>
 
-            <div className="space-y-2">
-              {subscribers.map((sub) => (
-                <div
-                  key={sub.id}
-                  onClick={() => setSelectedSub(sub)}
-                  className={`p-4 rounded border transition cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                    selectedSub?.id === sub.id
-                      ? 'bg-[#0E1524] border-2 border-[#00F0FF] shadow-[0_0_15px_rgba(0,240,255,0.2)]'
-                      : 'bg-[#0A0D15] border border-[#00F0FF]/30 hover:border-[#00F0FF]/60'
-                  }`}
+            {loadingData ? (
+              <div className="p-8 bg-[#0A0D15] border border-[#00F0FF]/30 rounded text-center text-xs font-mono text-cyan-400 animate-pulse">
+                📡 Consultando registros reales en PostgreSQL...
+              </div>
+            ) : subscribers.length === 0 ? (
+              <div className="p-8 bg-[#0A0D15] border border-[#00F0FF]/30 rounded text-center space-y-2">
+                <p className="text-sm font-bold text-white font-mono">📭 BASE DE DATOS VACÍA</p>
+                <p className="text-xs text-slate-400">No hay clientes registrados en la base de datos PostgreSQL en este momento.</p>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="mt-2 px-3 py-1.5 bg-[#00F0FF] text-black font-bold rounded text-xs uppercase inline-flex items-center gap-1.5"
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="px-2 py-0.5 bg-black text-[#00F0FF] border border-[#00F0FF]/40 rounded font-bold">
-                        {sub.code}
-                      </span>
-                      <span className="text-slate-400 font-sans">{sub.planName}</span>
-                      <span className="text-[10px] text-slate-500 font-mono">({sub.speed})</span>
+                  <Plus className="w-4 h-4" />
+                  CREAR PRIMER CLIENTE REAL
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {subscribers.map((sub) => (
+                  <div
+                    key={sub.id}
+                    onClick={() => setSelectedSub(sub)}
+                    className={`p-4 rounded border transition cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                      selectedSub?.id === sub.id
+                        ? 'bg-[#0E1524] border-2 border-[#00F0FF] shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                        : 'bg-[#0A0D15] border border-[#00F0FF]/30 hover:border-[#00F0FF]/60'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="px-2 py-0.5 bg-black text-[#00F0FF] border border-[#00F0FF]/40 rounded font-bold">
+                          {sub.code}
+                        </span>
+                        <span className="text-slate-400 font-sans">{sub.planName}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">({sub.speed})</span>
+                      </div>
+
+                      <h4 className="font-bold text-sm text-white font-sans">{sub.name}</h4>
+                      <p className="text-xs text-slate-400">{sub.address}</p>
                     </div>
 
-                    <h4 className="font-bold text-sm text-white font-sans">{sub.name}</h4>
-                    <p className="text-xs text-slate-400">{sub.address}</p>
-                  </div>
+                    <div className="flex items-center gap-4 text-right">
+                      <div>
+                        <p className="text-[10px] text-cyan-400">// ONT_SERIAL</p>
+                        <p className="text-xs font-bold text-white">{sub.ontSn}</p>
+                        <p className={`text-xs font-bold mt-0.5 ${
+                          sub.signalDbm < -25 ? 'text-red-400' : 'text-[#00FF66]'
+                        }`}>
+                          {sub.signalDbm} dBm
+                        </p>
+                      </div>
 
-                  <div className="flex items-center gap-4 text-right">
-                    <div>
-                      <p className="text-[10px] text-cyan-400">// ONT_SERIAL</p>
-                      <p className="text-xs font-bold text-white">{sub.ontSn}</p>
-                      <p className={`text-xs font-bold mt-0.5 ${
-                        sub.signalDbm < -25 ? 'text-red-400' : 'text-[#00FF66]'
+                      <span className={`px-3 py-1 rounded text-xs font-bold ${
+                        sub.status === 'ACTIVO' ? 'bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40' :
+                        sub.status === 'MOROSO' ? 'bg-red-950 text-red-400 border border-red-800' :
+                        'bg-amber-950 text-amber-400 border border-amber-800'
                       }`}>
-                        {sub.signalDbm} dBm
-                      </p>
+                        {sub.status}
+                      </span>
                     </div>
-
-                    <span className={`px-3 py-1 rounded text-xs font-bold ${
-                      sub.status === 'ACTIVO' ? 'bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40' :
-                      sub.status === 'MOROSO' ? 'bg-red-950 text-red-400 border border-red-800' :
-                      'bg-amber-950 text-amber-400 border border-amber-800'
-                    }`}>
-                      {sub.status}
-                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Customer Telemetry & Actions Drawer */}
