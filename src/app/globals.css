@@ -4,15 +4,16 @@
 
 @layer base {
   body {
-    background-color: #07090e;
+    background-color: #05070A;
     color: #e2e8f0;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    overflow-x: hidden;
   }
 }
 
-/* RETRO HACKER CTOS 2.0 ANIMATIONS */
+/* RETRO HACKER cTOS 2.0 ANIMATIONS & EFFECTS */
 
-/* 1. CRT Scanline Sweep Animation */
+/* 1. Continuous CRT Scanline Sweep */
 @keyframes scanlineSweep {
   0% {
     background-position: 0 0;
@@ -27,66 +28,94 @@
     to bottom,
     rgba(255, 255, 255, 0),
     rgba(255, 255, 255, 0) 50%,
-    rgba(0, 0, 0, 0.5) 50%,
-    rgba(0, 0, 0, 0.5)
+    rgba(0, 0, 0, 0.6) 50%,
+    rgba(0, 0, 0, 0.6)
   );
   background-size: 100% 4px;
-  animation: scanlineSweep 10s linear infinite;
+  animation: scanlineSweep 8s linear infinite;
 }
 
-/* 2. Neon Pulsing Glow for Active Badges & Buttons */
-@keyframes neonPulse {
-  0%, 100% {
-    box-shadow: 0 0 8px currentColor, inset 0 0 4px currentColor;
-    opacity: 1;
+/* 2. CRT Phosphor Screen Flicker */
+@keyframes crtFlicker {
+  0%, 100% { opacity: 0.99; }
+  50% { opacity: 0.96; }
+  70% { opacity: 0.98; }
+}
+
+.crt-screen-flicker {
+  animation: crtFlicker 0.15s infinite;
+}
+
+/* 3. Watch Dogs 2 Glitch Hover Text Effect */
+@keyframes glitchText {
+  0% {
+    text-shadow: 2px 0 #00ff66, -2px 0 #00f0ff;
+  }
+  25% {
+    text-shadow: -2px 0 #00ff66, 2px 0 #ff5500;
   }
   50% {
-    box-shadow: 0 0 18px currentColor, inset 0 0 8px currentColor;
-    opacity: 0.85;
+    text-shadow: 2px 0 #d946ef, -2px 0 #00ff66;
+  }
+  75% {
+    text-shadow: -2px 0 #00f0ff, 2px 0 #eab308;
+  }
+  100% {
+    text-shadow: 2px 0 #00ff66, -2px 0 #00f0ff;
   }
 }
 
-.animate-neon-pulse {
-  animation: neonPulse 2s ease-in-out infinite;
+.glitch-hover:hover {
+  animation: glitchText 0.3s infinite;
 }
 
-/* 3. Terminal Blinking Cursor */
-@keyframes cursorBlink {
+/* 4. Glowing Neon Pulse Badges */
+@keyframes neonGlowPulse {
   0%, 100% {
-    opacity: 1;
+    box-shadow: 0 0 10px currentColor, inset 0 0 5px currentColor;
   }
   50% {
-    opacity: 0;
+    box-shadow: 0 0 20px currentColor, inset 0 0 10px currentColor;
   }
+}
+
+.animate-neon-glow {
+  animation: neonGlowPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 5. Terminal Blinking Cursor */
+@keyframes terminalCursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .animate-cursor {
-  animation: cursorBlink 1s infinite;
+  animation: terminalCursor 0.8s infinite;
 }
 
-/* 4. Smooth Card Glow Elevation on Hover */
-.hover-neon-glow {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* 6. Card Hover Neon Elevation */
+.hover-card-neon {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.hover-neon-glow:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(0, 255, 102, 0.25);
+.hover-card-neon:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 0 25px rgba(0, 255, 102, 0.2);
 }
 
-/* Scrollbar Customization for Retro Hacker Look */
+/* Custom Cyberpunk Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #07090e;
+  background: #05070A;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #1e293b;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
