@@ -1,202 +1,201 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Radio, 
-  Wrench, 
   Users, 
-  MapPin, 
-  MessageSquare, 
-  DollarSign, 
+  Network, 
+  Bot, 
+  CreditCard, 
   Truck, 
-  ShieldCheck, 
-  Terminal,
+  BarChart3, 
+  Package, 
+  UserCheck, 
+  Settings, 
+  LogIn,
+  ShieldCheck,
   Search,
-  BarChart3,
-  Boxes,
-  UserCheck,
-  Settings,
-  LogIn
+  Terminal,
+  Clock,
+  Layers,
+  ChevronDown
 } from 'lucide-react';
 
-interface NavItem {
+interface ModuleTab {
   name: string;
   href: string;
   icon: React.ElementType;
   accentColor: string;
-  badgeText: string;
+  category: 'OPERACIONES_OSS' | 'NEGOCIO_BSS' | 'SISTEMA';
 }
 
 export default function NavigationHeader() {
   const pathname = usePathname();
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<'ALL' | 'OPERACIONES_OSS' | 'NEGOCIO_BSS' | 'SISTEMA'>('ALL');
 
-  const navItems: NavItem[] = [
-    {
-      name: 'NOC DESPACHO',
-      href: '/',
-      icon: Radio,
-      accentColor: '#00FF66',
-      badgeText: 'NOC',
-    },
-    {
-      name: 'CRM SUSCRIPTORES',
-      href: '/clientes',
-      icon: Users,
-      accentColor: '#00F0FF',
-      badgeText: 'BSS',
-    },
-    {
-      name: 'MAPA FTTH NAPs',
-      href: '/mapa-red',
-      icon: MapPin,
-      accentColor: '#FF5500',
-      badgeText: 'OSS',
-    },
-    {
-      name: 'WHATSAPP AI BOT',
-      href: '/whatsapp-bot',
-      icon: MessageSquare,
-      accentColor: '#D946EF',
-      badgeText: 'AI_PARSER',
-    },
-    {
-      name: 'FACTURACIÓN MORA',
-      href: '/facturacion',
-      icon: DollarSign,
-      accentColor: '#FFB000',
-      badgeText: 'BILLING',
-    },
-    {
-      name: 'CUADRILLAS STOCK',
-      href: '/cuadrillas',
-      icon: Truck,
-      accentColor: '#A855F7',
-      badgeText: 'LOGISTICS',
-    },
-    {
-      name: 'REPORTES ANALÍTICA',
-      href: '/reportes',
-      icon: BarChart3,
-      accentColor: '#06B6D4',
-      badgeText: 'ANALYTICS',
-    },
-    {
-      name: 'BODEGA CENTRAL',
-      href: '/inventario',
-      icon: Boxes,
-      accentColor: '#10B981',
-      badgeText: 'WAREHOUSE',
-    },
-    {
-      name: 'PORTAL CLIENTE',
-      href: '/portal-cliente',
-      icon: UserCheck,
-      accentColor: '#3B82F6',
-      badgeText: 'SELF_SERVICE',
-    },
-    {
-      name: 'CONFIGURACIÓN RED',
-      href: '/configuracion',
-      icon: Settings,
-      accentColor: '#EF4444',
-      badgeText: 'HARDWARE_CONFIG',
-    },
-    {
-      name: 'LOGIN / RBAC',
-      href: '/login',
-      icon: LogIn,
-      accentColor: '#EAB308',
-      badgeText: 'AUTH',
-    },
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('es-CL', { hour12: false }));
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const navTabs: ModuleTab[] = [
+    // CATEGORIA: OPERACIONES & TERRENO (OSS)
+    { name: 'NOC Despacho', href: '/', icon: Radio, accentColor: '#00FF66', category: 'OPERACIONES_OSS' },
+    { name: 'Mapa FTTH NAPs', href: '/mapa-red', icon: Network, accentColor: '#FF5500', category: 'OPERACIONES_OSS' },
+    { name: 'Cuadrillas Stock', href: '/cuadrillas', icon: Truck, accentColor: '#A855F7', category: 'OPERACIONES_OSS' },
+    { name: 'WhatsApp AI Bot', href: '/whatsapp-bot', icon: Bot, accentColor: '#D946EF', category: 'OPERACIONES_OSS' },
+    { name: 'Bodega Central', href: '/inventario', icon: Package, accentColor: '#10B981', category: 'OPERACIONES_OSS' },
+
+    // CATEGORIA: NEGOCIO & CLIENTES (BSS)
+    { name: 'CRM Suscriptores', href: '/clientes', icon: Users, accentColor: '#00F0FF', category: 'NEGOCIO_BSS' },
+    { name: 'Facturación Mora', href: '/facturacion', icon: CreditCard, accentColor: '#FFB000', category: 'NEGOCIO_BSS' },
+    { name: 'Portal Cliente', href: '/portal-cliente', icon: UserCheck, accentColor: '#3B82F6', category: 'NEGOCIO_BSS' },
+    { name: 'Reportes BI', href: '/reportes', icon: BarChart3, accentColor: '#06B6D4', category: 'NEGOCIO_BSS' },
+
+    // CATEGORIA: SISTEMA & ACCESO
+    { name: 'Configuración Red', href: '/configuracion', icon: Settings, accentColor: '#EF4444', category: 'SISTEMA' },
+    { name: 'Login RBAC', href: '/login', icon: LogIn, accentColor: '#EAB308', category: 'SISTEMA' },
   ];
 
-  const currentItem = navItems.find((item) => item.href === pathname) || navItems[0];
-  const ActiveIcon = currentItem.icon;
+  const activeTab = navTabs.find((tab) => tab.href === pathname) || navTabs[0];
+
+  const filteredTabs = navTabs.filter((tab) => {
+    const matchesSearch = tab.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = activeCategoryFilter === 'ALL' || tab.category === activeCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
-    <header className="border-b-2 border-slate-800 bg-[#0A0E17] px-6 py-3 flex flex-col lg:flex-row items-center justify-between gap-4 sticky top-0 z-50 shadow-xl font-mono">
+    <header className="sticky top-0 z-40 bg-[#05070D]/95 backdrop-blur-md border-b-2 border-[#00FF66]/30 selection:bg-[#00FF66] selection:text-black shadow-[0_4px_20px_rgba(0,0,0,0.8)]">
       
-      {/* Left: Brand Identity & Active Page Context */}
-      <div className="flex items-center gap-4">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div 
-            className="w-10 h-10 bg-black border-2 rounded flex items-center justify-center transition-all duration-300 group-hover:scale-105"
-            style={{ 
-              borderColor: currentItem.accentColor,
-              boxShadow: `0 0 15px ${currentItem.accentColor}40`
-            }}
-          >
-            <ActiveIcon className="w-5 h-5 animate-pulse" style={{ color: currentItem.accentColor }} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-wider text-[#EAB308] uppercase leading-none font-mono">
-                TELECO<span style={{ color: currentItem.accentColor }}>OPS</span>
-              </h1>
-              <span 
-                className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-black border"
-                style={{ 
-                  color: currentItem.accentColor,
-                  borderColor: `${currentItem.accentColor}60`
-                }}
-              >
-                //{currentItem.badgeText}
-              </span>
+      {/* Top Header Bar */}
+      <div className="max-w-[1650px] mx-auto px-6 py-2.5 flex items-center justify-between border-b border-slate-800/80 text-xs font-mono">
+        
+        {/* Logo & Category Selector */}
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 rounded bg-black border-2 border-[#00FF66] flex items-center justify-center text-[#00FF66] shadow-[0_0_12px_rgba(0,255,102,0.3)] group-hover:scale-105 transition">
+              <Terminal className="w-4 h-4" />
             </div>
-            <p className="text-[10px] text-slate-400 font-sans mt-0.5">DEDSEC cTOS 2.0 OPERATIONAL OS</p>
+            <div>
+              <span className="font-bold text-white tracking-widest text-sm font-mono block leading-none">
+                TELECO<span className="text-[#00FF66]">OPS</span>
+              </span>
+              <span className="text-[9px] text-slate-400 font-mono">cTOS 2.0 SUITE</span>
+            </div>
+          </Link>
+
+          <span className="text-slate-700 hidden md:inline">|</span>
+
+          {/* Category Filter Pills (Categorización de Módulos) */}
+          <div className="hidden lg:flex items-center gap-1.5 bg-[#090D16] p-1 rounded border border-slate-800">
+            <button
+              onClick={() => setActiveCategoryFilter('ALL')}
+              className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition ${
+                activeCategoryFilter === 'ALL'
+                  ? 'bg-[#00FF66] text-black shadow-[0_0_8px_rgba(0,255,102,0.4)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              TODOS (11)
+            </button>
+            <button
+              onClick={() => setActiveCategoryFilter('OPERACIONES_OSS')}
+              className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition ${
+                activeCategoryFilter === 'OPERACIONES_OSS'
+                  ? 'bg-[#FF5500] text-black shadow-[0_0_8px_rgba(255,85,0,0.4)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              OPERACIONES OSS (5)
+            </button>
+            <button
+              onClick={() => setActiveCategoryFilter('NEGOCIO_BSS')}
+              className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition ${
+                activeCategoryFilter === 'NEGOCIO_BSS'
+                  ? 'bg-[#00F0FF] text-black shadow-[0_0_8px_rgba(0,240,255,0.4)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              NEGOCIO BSS (4)
+            </button>
+            <button
+              onClick={() => setActiveCategoryFilter('SISTEMA')}
+              className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition ${
+                activeCategoryFilter === 'SISTEMA'
+                  ? 'bg-[#EF4444] text-white shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              SISTEMA (2)
+            </button>
           </div>
-        </Link>
+        </div>
+
+        {/* Right Utilities (Search, Clock & Safety Badge) */}
+        <div className="flex items-center gap-3">
+          
+          {/* Quick Search */}
+          <div className="relative hidden xl:block w-56">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-500" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar módulo..."
+              className="w-full bg-[#090D16] border border-slate-800 focus:border-[#00FF66] rounded pl-8 pr-3 py-1 text-[11px] text-white focus:outline-none transition"
+            />
+          </div>
+
+          {/* System Clock */}
+          <div className="flex items-center gap-1.5 text-slate-300 text-[11px] bg-black/80 px-2.5 py-1 rounded border border-slate-800 font-mono">
+            <Clock className="w-3.5 h-3.5 text-[#00FF66]" />
+            <span>{currentTime || '18:26:00'}</span>
+          </div>
+
+          {/* Safety Badge */}
+          <div className="flex items-center gap-1.5 bg-[#00FF66]/10 border border-[#00FF66]/40 text-[#00FF66] text-[10px] px-2.5 py-1 rounded font-bold uppercase">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>MOCK_SAFE</span>
+          </div>
+        </div>
       </div>
 
-      {/* Center: Clean Navigation Tabs Bar */}
-      <nav className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full text-xs">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
+      {/* Module Navigation Tabs (Categorized Visual Clusters) */}
+      <nav className="max-w-[1650px] mx-auto px-6 py-2 overflow-x-auto no-scrollbar flex items-center gap-1.5">
+        {filteredTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = pathname === tab.href;
 
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              className={`px-3 py-1.5 rounded transition flex items-center gap-2 font-bold whitespace-nowrap ${
+              key={tab.href}
+              href={tab.href}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono font-bold whitespace-nowrap transition-all border ${
                 isActive
-                  ? 'bg-black border text-white'
-                  : 'bg-[#0F1320] text-slate-400 hover:text-white border border-slate-800/80 hover:border-slate-700'
+                  ? 'bg-black text-white border-2 shadow-[0_0_14px_rgba(0,0,0,0.5)] scale-[1.02]'
+                  : 'bg-[#090D16]/80 text-slate-400 hover:text-white border-slate-800/80 hover:border-slate-700'
               }`}
               style={{
-                borderColor: isActive ? item.accentColor : undefined,
-                color: isActive ? item.accentColor : undefined,
-                boxShadow: isActive ? `0 0 12px ${item.accentColor}35` : undefined,
+                borderColor: isActive ? tab.accentColor : undefined,
+                color: isActive ? tab.accentColor : undefined,
               }}
             >
-              <Icon className="w-3.5 h-3.5" style={{ color: item.accentColor }} />
-              <span>{item.name}</span>
+              <Icon className="w-3.5 h-3.5" style={{ color: tab.accentColor }} />
+              <span>{tab.name}</span>
             </Link>
           );
         })}
       </nav>
-
-      {/* Right: Quick Search & Safety Indicator */}
-      <div className="flex items-center gap-3 text-xs">
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="SEARCH_ONT_OR_CLIENT..."
-            className="bg-black border border-slate-800 focus:border-cyan-400 rounded pl-8 pr-3 py-1 text-xs text-cyan-300 focus:outline-none w-48 font-mono placeholder:text-slate-600"
-          />
-        </div>
-
-        <div className="hidden xl:flex items-center gap-1.5 bg-black text-[#00FF66] px-2.5 py-1 rounded border border-[#00FF66]/30 text-[10px]">
-          <ShieldCheck className="w-3.5 h-3.5 text-[#00FF66]" />
-          <span>MOCK_SAFE</span>
-        </div>
-      </div>
 
     </header>
   );
