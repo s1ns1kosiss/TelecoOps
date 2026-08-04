@@ -4,24 +4,21 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
+  LogIn,
   Radio, 
   Users, 
   Network, 
+  Truck,
   Bot, 
+  Package,
   CreditCard, 
-  Truck, 
-  BarChart3, 
-  Package, 
   UserCheck, 
+  BarChart3, 
   Settings, 
-  LogIn,
   ShieldCheck,
   Terminal,
   Activity,
-  Search,
-  Command,
-  Zap,
-  Grid
+  Search
 } from 'lucide-react';
 
 interface ModuleTab {
@@ -32,13 +29,13 @@ interface ModuleTab {
   icon: React.ElementType;
   accentColor: string;
   hotkey: string;
+  order: number;
 }
 
 export default function NavigationHeader() {
   const pathname = usePathname();
   const [clockTime, setClockTime] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showQuickMenu, setShowQuickMenu] = useState(false);
 
   useEffect(() => {
     const updateTime = () => {
@@ -50,21 +47,22 @@ export default function NavigationHeader() {
     return () => clearInterval(timer);
   }, []);
 
+  // 11 Modules ordered in logical operational sequence (01 to 11)
   const navTabs: ModuleTab[] = [
-    { id: '1', name: 'NOC DESPACHO', code: 'NOC', href: '/', icon: Radio, accentColor: '#00FF66', hotkey: 'F1' },
-    { id: '2', name: 'CRM SUSCRIPTORES', code: 'CRM', href: '/clientes', icon: Users, accentColor: '#00F0FF', hotkey: 'F2' },
-    { id: '3', name: 'MAPA FTTH NAPs', code: 'MAP', href: '/mapa-red', icon: Network, accentColor: '#FF5500', hotkey: 'F3' },
-    { id: '4', name: 'WHATSAPP AI BOT', code: 'BOT', href: '/whatsapp-bot', icon: Bot, accentColor: '#D946EF', hotkey: 'F4' },
-    { id: '5', name: 'FACTURACIÓN MORA', code: 'BILL', href: '/facturacion', icon: CreditCard, accentColor: '#FFB000', hotkey: 'F5' },
-    { id: '6', name: 'CUADRILLAS STOCK', code: 'CREW', href: '/cuadrillas', icon: Truck, accentColor: '#A855F7', hotkey: 'F6' },
-    { id: '7', name: 'REPORTES BI', code: 'BI', href: '/reportes', icon: BarChart3, accentColor: '#06B6D4', hotkey: 'F7' },
-    { id: '8', name: 'BODEGA CENTRAL', code: 'STOCK', href: '/inventario', icon: Package, accentColor: '#10B981', hotkey: 'F8' },
-    { id: '9', name: 'PORTAL CLIENTE', code: 'CLIENT', href: '/portal-cliente', icon: UserCheck, accentColor: '#3B82F6', hotkey: 'F9' },
-    { id: '10', name: 'CONFIGURACIÓN RED', code: 'CONFIG', href: '/configuracion', icon: Settings, accentColor: '#EF4444', hotkey: 'F10' },
-    { id: '11', name: 'LOGIN RBAC', code: 'AUTH', href: '/login', icon: LogIn, accentColor: '#EAB308', hotkey: 'F11' },
+    { id: '1', order: 1, name: 'LOGIN RBAC', code: '01_AUTH', href: '/login', icon: LogIn, accentColor: '#EAB308', hotkey: 'F1' },
+    { id: '2', order: 2, name: 'NOC DESPACHO', code: '02_NOC', href: '/', icon: Radio, accentColor: '#00FF66', hotkey: 'F2' },
+    { id: '3', order: 3, name: 'CRM SUSCRIPTORES', code: '03_CRM', href: '/clientes', icon: Users, accentColor: '#00F0FF', hotkey: 'F3' },
+    { id: '4', order: 4, name: 'MAPA FTTH NAPs', code: '04_MAP', href: '/mapa-red', icon: Network, accentColor: '#FF5500', hotkey: 'F4' },
+    { id: '5', order: 5, name: 'CUADRILLAS STOCK', code: '05_CREW', href: '/cuadrillas', icon: Truck, accentColor: '#A855F7', hotkey: 'F5' },
+    { id: '6', order: 6, name: 'WHATSAPP AI BOT', code: '06_BOT', href: '/whatsapp-bot', icon: Bot, accentColor: '#D946EF', hotkey: 'F6' },
+    { id: '7', order: 7, name: 'BODEGA CENTRAL', code: '07_STOCK', href: '/inventario', icon: Package, accentColor: '#10B981', hotkey: 'F7' },
+    { id: '8', order: 8, name: 'FACTURACIÓN MORA', code: '08_BILL', href: '/facturacion', icon: CreditCard, accentColor: '#FFB000', hotkey: 'F8' },
+    { id: '9', order: 9, name: 'PORTAL CLIENTE', code: '09_PORTAL', href: '/portal-cliente', icon: UserCheck, accentColor: '#3B82F6', hotkey: 'F9' },
+    { id: '10', order: 10, name: 'REPORTES BI', code: '10_BI', href: '/reportes', icon: BarChart3, accentColor: '#06B6D4', hotkey: 'F10' },
+    { id: '11', order: 11, name: 'CONFIGURACIÓN RED', code: '11_CFG', href: '/configuracion', icon: Settings, accentColor: '#EF4444', hotkey: 'F11' },
   ];
 
-  const activeTab = navTabs.find((tab) => tab.href === pathname) || navTabs[0];
+  const activeTab = navTabs.find((tab) => tab.href === pathname) || navTabs[1];
 
   const filteredTabs = navTabs.filter((tab) =>
     tab.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -116,7 +114,7 @@ export default function NavigationHeader() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Escribe para filtrar módulos..."
+              placeholder="Filtrar por código o nombre..."
               className="w-full bg-[#090D15] border border-[#00FF66]/30 focus:border-[#00FF66] rounded pl-9 pr-8 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none transition shadow-[inset_0_0_8px_rgba(0,0,0,0.6)]"
             />
             {searchQuery && (
@@ -135,7 +133,7 @@ export default function NavigationHeader() {
           {/* Live System Time */}
           <div className="flex items-center gap-1.5 text-slate-300 text-[11px] bg-black px-3 py-1 rounded border border-slate-800">
             <Activity className="w-3.5 h-3.5 text-[#00FF66] animate-pulse" />
-            <span className="text-white font-bold">{clockTime || '18:31:00'}</span>
+            <span className="text-white font-bold">{clockTime || '18:33:00'}</span>
           </div>
 
           {/* Safety Isolated Badge */}
@@ -147,7 +145,7 @@ export default function NavigationHeader() {
 
       </div>
 
-      {/* Cyberpunk HUD Navigation Bar (Hotbar Matrix) */}
+      {/* Cyberpunk HUD Navigation Bar (Ordered 01 to 11) */}
       <nav className="max-w-[1700px] mx-auto px-6 py-2 overflow-x-auto no-scrollbar flex items-center gap-2">
         {filteredTabs.map((tab) => {
           const Icon = tab.icon;
@@ -175,7 +173,7 @@ export default function NavigationHeader() {
 
               <Icon className="w-3.5 h-3.5" style={{ color: tab.accentColor }} />
               
-              <span>{tab.name}</span>
+              <span>[{tab.code}] {tab.name}</span>
 
               {/* Hotkey Tag */}
               <span className="text-[9px] text-slate-600 group-hover:text-slate-400 border border-slate-800 px-1 rounded font-mono">
