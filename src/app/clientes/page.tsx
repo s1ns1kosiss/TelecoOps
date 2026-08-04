@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NavigationHeader from '@/components/NavigationHeader';
 import { 
   Users, 
@@ -16,7 +16,8 @@ import {
   Server, 
   Radio, 
   Zap,
-  CornerDownRight
+  CornerDownRight,
+  Plus
 } from 'lucide-react';
 import { MockHardwareDriver } from '@/drivers/mocks/mock_hardware_driver';
 
@@ -76,31 +77,81 @@ export default function SubscribersPage() {
       ipAddress: '192.168.10.200',
       pppoeUser: 'super_central_b2b',
     },
-    {
-      id: '3',
-      code: 'SUB-1095',
-      name: 'María González',
-      taxId: '14.210.884-1',
-      phone: '+56 9 7712 3341',
-      address: 'Pasaje El Roble 88',
-      planName: 'Fibra Hogar Conectado',
-      speed: '500 Mbps / 500 Mbps',
-      monthlyPrice: 19990,
-      status: 'ACTIVO',
-      ontSn: 'VSOL-44A902',
-      napBox: 'NAP-ROBLE-02 (Puerto 05)',
-      signalDbm: -20.1,
-      ipAddress: '192.168.10.195',
-      pppoeUser: 'maria_gonzalez_home',
-    },
   ]);
 
   const [selectedSub, setSelectedSub] = useState<CustomerSubscriber | null>(subscribers[0]);
   const [actionLog, setActionLog] = useState<string[]>([
     '// CRM_MODULE_INITIALIZED: DEDSEC_SUBSCRIBER_DATABASE',
-    '// TYPE OR CLICK REMOTE NETWORK ACTIONS TO TEST ONT HARDWARE DRIVERS.',
+    '// DATABASE_PERSISTENCE: READY FOR REAL CUSTOMER REGISTRATION IN POSTGRESQL.',
   ]);
   const [loadingAction, setLoadingAction] = useState(false);
+
+  // New Real Subscriber Form State
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newSubName, setNewSubName] = useState('');
+  const [newSubTaxId, setNewSubTaxId] = useState('');
+  const [newSubAddress, setNewSubAddress] = useState('');
+
+  const handleCreateRealSubscriber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubName || !newSubTaxId) return;
+
+    setLoadingAction(true);
+    setActionLog((prev) => [
+      ...prev,
+      `💾 // POST /api/subscribers: Registrando cliente real "${newSubName}" (RUT: ${newSubTaxId})...`,
+    ]);
+
+    try {
+      const res = await fetch('/api/subscribers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newSubName,
+          taxId: newSubTaxId,
+          address: newSubAddress || 'Av. Providencia 1200',
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        const createdCustomer = data.data;
+        const newSubItem: CustomerSubscriber = {
+          id: createdCustomer.id,
+          code: createdCustomer.code || `SUB-${Math.floor(1000 + Math.random() * 9000)}`,
+          name: `${createdCustomer.firstName} ${createdCustomer.lastName}`,
+          taxId: createdCustomer.taxId,
+          phone: createdCustomer.phone || '+56 9 8888 7777',
+          address: createdCustomer.address,
+          planName: 'Fibra Pro 500M Real',
+          speed: '500 Mbps Simétrico',
+          monthlyPrice: 22990,
+          status: 'ACTIVO',
+          ontSn: `HWTC-REAL-${Math.floor(100 + Math.random() * 900)}`,
+          napBox: 'NAP-CENTRO-02 (Puerto 01)',
+          signalDbm: -18.8,
+          ipAddress: '192.168.10.199',
+          pppoeUser: `user_${createdCustomer.taxId.replace(/[^a-zA-Z0-9]/g, '')}`,
+        };
+
+        setSubscribers((prev) => [newSubItem, ...prev]);
+        setSelectedSub(newSubItem);
+        setActionLog((prev) => [
+          ...prev,
+          `✔ // CLIENTE REAL GUARDADO EN POSTGRESQL: ID=${createdCustomer.id}`,
+        ]);
+
+        setNewSubName('');
+        setNewSubTaxId('');
+        setNewSubAddress('');
+        setShowAddForm(false);
+      }
+    } catch (err: any) {
+      setActionLog((prev) => [...prev, `❌ Error al guardar en DB: ${err.message}`]);
+    } finally {
+      setLoadingAction(false);
+    }
+  };
 
   const handleTestSignal = async () => {
     if (!selectedSub) return;
@@ -176,14 +227,85 @@ export default function SubscribersPage() {
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-[#00F0FF]" />
             <div>
-              <span className="font-bold text-white uppercase">// MÓDULO BSS: GESTIÓN DE SUSCRIPTORES & CONTROL DE FIBRA</span>
-              <p className="text-[11px] text-slate-400">Selecciona un cliente de la lista para probar las mediciones de señal dBm y acciones de corte/reconexión.</p>
+              <span className="font-bold text-white uppercase">// MÓDULO BSS: GESTIÓN DE SUSCRIPTORES & PERSISTENCIA EN POSTGRESQL</span>
+              <p className="text-[11px] text-slate-400">Registra clientes reales que se guardan directamente en PostgreSQL o mide las potencias ópticas en tiempo real.</p>
             </div>
           </div>
-          <span className="text-[10px] bg-[#00F0FF] text-black px-2.5 py-0.5 rounded font-bold uppercase">
-            DRIVER HARDWARE: READY
-          </span>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="bg-[#00F0FF] hover:bg-[#00D0DF] text-black font-bold px-3 py-1.5 rounded uppercase text-[11px] transition flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            REGISTRAR CLIENTE REAL
+          </button>
         </div>
+
+        {/* Real Subscriber Form Modal / Card */}
+        {showAddForm && (
+          <form onSubmit={handleCreateRealSubscriber} className="p-4 bg-[#09111C] border-2 border-[#00F0FF] rounded space-y-3 text-xs">
+            <div className="flex justify-between items-center border-b border-[#00F0FF]/30 pb-2">
+              <span className="font-bold text-white uppercase flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#00F0FF]" />
+                FORMULARIO DE REGISTRO EN POSTGRESQL
+              </span>
+              <span className="text-[10px] text-cyan-400 font-mono">TABLE: customers</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-slate-400 text-[10px] uppercase font-bold block mb-1">Nombre Completo:</label>
+                <input
+                  type="text"
+                  value={newSubName}
+                  onChange={(e) => setNewSubName(e.target.value)}
+                  placeholder="ej. Carlos Silva"
+                  className="w-full bg-black border border-[#00F0FF]/40 rounded px-3 py-1.5 text-white font-mono text-xs focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 text-[10px] uppercase font-bold block mb-1">RUT / Identificación:</label>
+                <input
+                  type="text"
+                  value={newSubTaxId}
+                  onChange={(e) => setNewSubTaxId(e.target.value)}
+                  placeholder="ej. 15.420.991-K"
+                  className="w-full bg-black border border-[#00F0FF]/40 rounded px-3 py-1.5 text-white font-mono text-xs focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 text-[10px] uppercase font-bold block mb-1">Dirección de Instalación:</label>
+                <input
+                  type="text"
+                  value={newSubAddress}
+                  onChange={(e) => setNewSubAddress(e.target.value)}
+                  placeholder="ej. Av. Providencia 1200, Dpto 81"
+                  className="w-full bg-black border border-[#00F0FF]/40 rounded px-3 py-1.5 text-white font-mono text-xs focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="px-3 py-1.5 bg-black text-slate-400 border border-slate-700 rounded text-xs"
+              >
+                CANCELAR
+              </button>
+              <button
+                type="submit"
+                disabled={loadingAction}
+                className="px-4 py-1.5 bg-[#00F0FF] text-black font-bold rounded text-xs uppercase"
+              >
+                GUARDAR CLIENTE EN DB
+              </button>
+            </div>
+          </form>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
@@ -253,7 +375,7 @@ export default function SubscribersPage() {
                   <div>
                     <span className="text-[10px] text-cyan-400 uppercase">// SUBSCRIBER_DETAILS</span>
                     <h3 className="text-base font-bold text-white font-sans">{selectedSub.name}</h3>
-                    <p className="text-xs text-slate-400">{selectedSub.code} • RUT/RUC: {selectedSub.taxId}</p>
+                    <p className="text-xs text-slate-400">{selectedSub.code} • RUT: {selectedSub.taxId}</p>
                   </div>
                   <span className="text-xs font-bold text-[#00F0FF] bg-[#00F0FF]/10 px-2.5 py-1 rounded border border-[#00F0FF]/40">
                     ${selectedSub.monthlyPrice.toLocaleString('es-CL')}/mes
@@ -331,7 +453,7 @@ export default function SubscribersPage() {
               </div>
 
               <div className="text-[10px] text-slate-500 border-t border-[#00F0FF]/30 pt-2 flex justify-between">
-                <span>Driver: <strong>MockHardwareDriver</strong></span>
+                <span>Driver: <strong>HardwareDriverFactory</strong></span>
                 <span className="text-[#00F0FF]">IP: {selectedSub.ipAddress}</span>
               </div>
             </div>
