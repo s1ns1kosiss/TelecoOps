@@ -46,18 +46,18 @@ export default function SubscribersPage() {
   const [selectedSub, setSelectedSub] = useState<CustomerSubscriber | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [actionLog, setActionLog] = useState<string[]>([
-    '// CRM_MODULE_INITIALIZED: DEDSEC_SUBSCRIBER_DATABASE',
-    '// POSTGRESQL_PERSISTENCE: FETCHING LIVE SUBSCRIBERS FROM DATABASE...',
+    '// MÓDULO_CRM_INICIALIZADO: BASE_DE_DATOS_DE_SUSCRIPTORES',
+    '// PERSISTENCIA_POSTGRESQL: CONSULTANDO SUSCRIPTORES EN VIVO...',
   ]);
   const [loadingAction, setLoadingAction] = useState(false);
 
-  // New Real Subscriber Form State
+  // Formulario de Nuevo Suscriptor Real
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSubName, setNewSubName] = useState('');
   const [newSubTaxId, setNewSubTaxId] = useState('');
   const [newSubAddress, setNewSubAddress] = useState('');
 
-  // Fetch real subscribers from PostgreSQL on mount
+  // Consulta de suscriptores reales en PostgreSQL al cargar
   useEffect(() => {
     fetchSubscribersFromDb();
   }, []);
@@ -71,28 +71,28 @@ export default function SubscribersPage() {
         const mapped: CustomerSubscriber[] = data.data.map((c: any) => ({
           id: c.id,
           code: c.code || 'SUB-1001',
-          name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Cliente Sin Nombre',
+          name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Cliente Registrado',
           taxId: c.taxId || 'N/A',
-          phone: c.phone || '+56900000000',
-          address: c.address || 'Sin dirección',
-          planName: c.subscriptions?.[0]?.plan?.name || 'Plan Fibra Base',
+          phone: c.phone || '+1 800 000 0000',
+          address: c.address || 'Dirección de Instalación',
+          planName: c.subscriptions?.[0]?.plan?.name || 'Plan Fibra Óptica 500M',
           speed: c.subscriptions?.[0]?.plan?.downloadSpeedMbps 
             ? `${c.subscriptions[0].plan.downloadSpeedMbps} Mbps Simétrico` 
             : '500 Mbps Simétrico',
-          monthlyPrice: c.subscriptions?.[0]?.plan?.monthlyPrice || 24990,
+          monthlyPrice: c.subscriptions?.[0]?.plan?.monthlyPrice || 29.99,
           status: c.status === 'SUSPENDED' ? 'SUSPENDIDO' : c.status === 'DEBTOR' ? 'MOROSO' : 'ACTIVO',
           ontSn: c.subscriptions?.[0]?.ontSerialNumber || 'HWTC-99A821',
-          napBox: c.subscriptions?.[0]?.napBoxId || 'NAP-CENTRO-01',
+          napBox: c.subscriptions?.[0]?.napBoxId || 'CAJA-NAP-CENTRO-01',
           signalDbm: -19.4,
           ipAddress: c.subscriptions?.[0]?.ipAddress || '192.168.10.100',
-          pppoeUser: c.subscriptions?.[0]?.pppoeUser || `user_${c.taxId.replace(/[^a-zA-Z0-9]/g, '')}`,
+          pppoeUser: c.subscriptions?.[0]?.pppoeUser || `usuario_${c.taxId.replace(/[^a-zA-Z0-9]/g, '')}`,
         }));
 
         setSubscribers(mapped);
         if (mapped.length > 0) setSelectedSub(mapped[0]);
         setActionLog((prev) => [
           ...prev,
-          `✔ // POSTGRESQL_FETCH_SUCCESS: ${mapped.length} suscriptor(es) reales cargados desde la base de datos.`,
+          `✔ // CONSULTA_EXITOSA: ${mapped.length} suscriptor(es) cargados desde PostgreSQL.`,
         ]);
       }
     } catch (err: any) {
@@ -109,7 +109,7 @@ export default function SubscribersPage() {
     setLoadingAction(true);
     setActionLog((prev) => [
       ...prev,
-      `💾 // POST /api/subscribers: Registrando cliente real "${newSubName}" (RUT: ${newSubTaxId})...`,
+      `💾 // POST /api/subscribers: Registrando suscriptor "${newSubName}" (ID/NIT: ${newSubTaxId})...`,
     ]);
 
     try {
@@ -119,7 +119,7 @@ export default function SubscribersPage() {
         body: JSON.stringify({
           name: newSubName,
           taxId: newSubTaxId,
-          address: newSubAddress || 'Av. Providencia 1200',
+          address: newSubAddress || 'Avenida Principal #1200',
         }),
       });
 
@@ -127,7 +127,7 @@ export default function SubscribersPage() {
       if (data.success) {
         setActionLog((prev) => [
           ...prev,
-          `✔ // CLIENTE REAL GUARDADO EN POSTGRESQL: ID=${data.data.id}`,
+          `✔ // SUSCRIPTOR GUARDADO EN BASE DE DATOS: ID=${data.data.id}`,
         ]);
 
         setNewSubName('');
@@ -137,7 +137,7 @@ export default function SubscribersPage() {
         await fetchSubscribersFromDb();
       }
     } catch (err: any) {
-      setActionLog((prev) => [...prev, `❌ Error al guardar en DB: ${err.message}`]);
+      setActionLog((prev) => [...prev, `❌ Error al guardar en base de datos: ${err.message}`]);
     } finally {
       setLoadingAction(false);
     }
@@ -146,13 +146,13 @@ export default function SubscribersPage() {
   const handleTestSignal = async () => {
     if (!selectedSub) return;
     setLoadingAction(true);
-    setActionLog((prev) => [...prev, `// EXEC_CMD: readOntSignal("${selectedSub.ontSn}")...`]);
+    setActionLog((prev) => [...prev, `// COMANDO: readOntSignal("${selectedSub.ontSn}")...`]);
 
     const result = await driver.readOntSignal(selectedSub.ontSn);
     setTimeout(() => {
       setActionLog((prev) => [
         ...prev,
-        `🎯 // SIGNAL_READOUT: RxPower = ${result.rxPowerDbm} dBm | Status = ${result.status} [OK]`,
+        `🎯 // LECTURA_DE_POTENCIA: Potencia Rx = ${result.rxPowerDbm} dBm | Estado = ${result.status} [ÓPTIMO]`,
       ]);
       setSubscribers((prev) =>
         prev.map((s) => (s.id === selectedSub.id ? { ...s, signalDbm: result.rxPowerDbm } : s))
@@ -165,13 +165,13 @@ export default function SubscribersPage() {
   const handleSuspendService = async () => {
     if (!selectedSub) return;
     setLoadingAction(true);
-    setActionLog((prev) => [...prev, `// EXEC_CMD: suspendService("${selectedSub.pppoeUser}")...`]);
+    setActionLog((prev) => [...prev, `// COMANDO: suspendService("${selectedSub.pppoeUser}")...`]);
 
     await driver.suspendService(selectedSub.pppoeUser);
     setTimeout(() => {
       setActionLog((prev) => [
         ...prev,
-        `🔒 // SERVICE_SUSPENDED: Suscripción ${selectedSub.code} cortada automáticamente por mora en MikroTik.`,
+        `🔒 // SERVICIO_SUSPENDIDO: Suscripción ${selectedSub.code} cortada automáticamente por mora en MikroTik.`,
       ]);
       setSubscribers((prev) =>
         prev.map((s) => (s.id === selectedSub.id ? { ...s, status: 'SUSPENDIDO' } : s))
@@ -184,13 +184,13 @@ export default function SubscribersPage() {
   const handleResumeService = async () => {
     if (!selectedSub) return;
     setLoadingAction(true);
-    setActionLog((prev) => [...prev, `// EXEC_CMD: resumeService("${selectedSub.pppoeUser}")...`]);
+    setActionLog((prev) => [...prev, `// COMANDO: resumeService("${selectedSub.pppoeUser}")...`]);
 
     await driver.resumeService(selectedSub.pppoeUser);
     setTimeout(() => {
       setActionLog((prev) => [
         ...prev,
-        `🔓 // SERVICE_RESTORED: Suscripción ${selectedSub.code} reactivada exitosamente.`,
+        `🔓 // SERVICIO_RECONECTADO: Suscripción ${selectedSub.code} reactivada exitosamente.`,
       ]);
       setSubscribers((prev) =>
         prev.map((s) => (s.id === selectedSub.id ? { ...s, status: 'ACTIVO' } : s))
@@ -217,8 +217,8 @@ export default function SubscribersPage() {
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-[#00F0FF]" />
             <div>
-              <span className="font-bold text-white uppercase">// MÓDULO BSS: GESTIÓN DE SUSCRIPTORES REALES EN POSTGRESQL</span>
-              <p className="text-[11px] text-slate-400">Los datos provienen directamente de tu base de datos PostgreSQL en Docker. Si usas db:reset la lista queda vacía hasta crear registros.</p>
+              <span className="font-bold text-white uppercase">// MÓDULO BSS: GESTIÓN DE SUSCRIPTORES Y PERSISTENCIA DE DATOS</span>
+              <p className="text-[11px] text-slate-400">Administración de clientes residenciales y corporativos conectados a la base de datos PostgreSQL.</p>
             </div>
           </div>
           <button
@@ -226,7 +226,7 @@ export default function SubscribersPage() {
             className="bg-[#00F0FF] hover:bg-[#00D0DF] text-black font-bold px-3 py-1.5 rounded uppercase text-[11px] transition flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
-            REGISTRAR CLIENTE REAL
+            REGISTRAR SUSCRIPTOR REAL
           </button>
         </div>
 
@@ -236,9 +236,9 @@ export default function SubscribersPage() {
             <div className="flex justify-between items-center border-b border-[#00F0FF]/30 pb-2">
               <span className="font-bold text-white uppercase flex items-center gap-2">
                 <Plus className="w-4 h-4 text-[#00F0FF]" />
-                FORMULARIO DE REGISTRO EN POSTGRESQL
+                FORMULARIO DE REGISTRO EN BASE DE DATOS
               </span>
-              <span className="text-[10px] text-cyan-400 font-mono">TABLE: customers</span>
+              <span className="text-[10px] text-cyan-400 font-mono font-bold">POSTGRESQL: customers</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -255,12 +255,12 @@ export default function SubscribersPage() {
               </div>
 
               <div>
-                <label className="text-slate-400 text-[10px] uppercase font-bold block mb-1">RUT / Identificación:</label>
+                <label className="text-slate-400 text-[10px] uppercase font-bold block mb-1">Identificación / DNI / RUT / NIT:</label>
                 <input
                   type="text"
                   value={newSubTaxId}
                   onChange={(e) => setNewSubTaxId(e.target.value)}
-                  placeholder="ej. 15.420.991-K"
+                  placeholder="ej. 15420991-K"
                   className="w-full bg-black border border-[#00F0FF]/40 rounded px-3 py-1.5 text-white font-mono text-xs focus:outline-none"
                   required
                 />
@@ -272,7 +272,7 @@ export default function SubscribersPage() {
                   type="text"
                   value={newSubAddress}
                   onChange={(e) => setNewSubAddress(e.target.value)}
-                  placeholder="ej. Av. Providencia 1200, Dpto 81"
+                  placeholder="ej. Avenida Central #1200, Edificio 4"
                   className="w-full bg-black border border-[#00F0FF]/40 rounded px-3 py-1.5 text-white font-mono text-xs focus:outline-none"
                 />
               </div>
@@ -282,7 +282,7 @@ export default function SubscribersPage() {
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="px-3 py-1.5 bg-black text-slate-400 border border-slate-700 rounded text-xs"
+                className="px-3 py-1.5 bg-black text-slate-400 border border-slate-700 rounded text-xs uppercase"
               >
                 CANCELAR
               </button>
@@ -291,7 +291,7 @@ export default function SubscribersPage() {
                 disabled={loadingAction}
                 className="px-4 py-1.5 bg-[#00F0FF] text-black font-bold rounded text-xs uppercase"
               >
-                GUARDAR CLIENTE EN DB
+                GUARDAR SUSCRIPTOR
               </button>
             </div>
           </form>
@@ -304,25 +304,25 @@ export default function SubscribersPage() {
             <div className="flex items-center justify-between text-xs font-bold text-white uppercase">
               <span className="flex items-center gap-2">
                 <CornerDownRight className="w-4 h-4 text-[#00F0FF]" />
-                Directorio de Suscriptores en PostgreSQL
+                Directorio de Suscriptores Registrados
               </span>
               <span className="text-slate-400">Total: {subscribers.length} Suscriptor(es)</span>
             </div>
 
             {loadingData ? (
               <div className="p-8 bg-[#0A0D15] border border-[#00F0FF]/30 rounded text-center text-xs font-mono text-cyan-400 animate-pulse">
-                📡 Consultando registros reales en PostgreSQL...
+                📡 Consultando registros en PostgreSQL...
               </div>
             ) : subscribers.length === 0 ? (
               <div className="p-8 bg-[#0A0D15] border border-[#00F0FF]/30 rounded text-center space-y-2">
                 <p className="text-sm font-bold text-white font-mono">📭 BASE DE DATOS VACÍA</p>
-                <p className="text-xs text-slate-400">No hay clientes registrados en la base de datos PostgreSQL en este momento.</p>
+                <p className="text-xs text-slate-400">No hay suscriptores registrados en la base de datos en este momento.</p>
                 <button
                   onClick={() => setShowAddForm(true)}
                   className="mt-2 px-3 py-1.5 bg-[#00F0FF] text-black font-bold rounded text-xs uppercase inline-flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
-                  CREAR PRIMER CLIENTE REAL
+                  CREAR PRIMER SUSCRIPTOR REAL
                 </button>
               </div>
             ) : (
@@ -381,24 +381,24 @@ export default function SubscribersPage() {
               <div className="space-y-4">
                 <div className="border-b border-[#00F0FF]/30 pb-3 flex justify-between items-start">
                   <div>
-                    <span className="text-[10px] text-cyan-400 uppercase">// SUBSCRIBER_DETAILS</span>
+                    <span className="text-[10px] text-cyan-400 uppercase">// DETALLES_DEL_SUSCRIPTOR</span>
                     <h3 className="text-base font-bold text-white font-sans">{selectedSub.name}</h3>
-                    <p className="text-xs text-slate-400">{selectedSub.code} • RUT: {selectedSub.taxId}</p>
+                    <p className="text-xs text-slate-400">{selectedSub.code} • ID: {selectedSub.taxId}</p>
                   </div>
                   <span className="text-xs font-bold text-[#00F0FF] bg-[#00F0FF]/10 px-2.5 py-1 rounded border border-[#00F0FF]/40">
-                    ${selectedSub.monthlyPrice.toLocaleString('es-CL')}/mes
+                    ${selectedSub.monthlyPrice}/mes
                   </span>
                 </div>
 
                 {/* Technical Fiber Parameters */}
                 <div className="bg-[#080B12] p-3.5 rounded border border-[#00F0FF]/30 space-y-2 text-xs">
                   <p className="text-[10px] text-slate-400 uppercase font-bold border-b border-slate-800 pb-1">
-                    // NETWORK_PARAMETERS & OPTICAL TELEMETRY
+                    // PARÁMETROS DE RED Y TELEMETRÍA ÓPTICA
                   </p>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[10px] text-slate-500 block">ONT Serial:</span>
+                      <span className="text-[10px] text-slate-500 block">Número de Serie ONT:</span>
                       <strong className="text-white">{selectedSub.ontSn}</strong>
                     </div>
                     <div>
@@ -410,7 +410,7 @@ export default function SubscribersPage() {
                       <strong className="text-white">{selectedSub.napBox}</strong>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 block">Potencia de Fibra:</span>
+                      <span className="text-[10px] text-slate-500 block">Potencia Óptica:</span>
                       <strong className={selectedSub.signalDbm < -25 ? 'text-red-400' : 'text-[#00FF66]'}>
                         {selectedSub.signalDbm} dBm
                       </strong>
@@ -420,12 +420,12 @@ export default function SubscribersPage() {
 
                 {/* Remote Network Actions Buttons */}
                 <div className="space-y-2">
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">// REMOTE_DRIVER_ACTIONS</p>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">// ACCIONES DE CONTROL REMOTO</p>
                   
                   <button
                     onClick={handleTestSignal}
                     disabled={loadingAction}
-                    className="w-full py-2 px-3 bg-black hover:bg-[#00F0FF]/20 border border-[#00F0FF] text-[#00F0FF] rounded font-bold text-xs transition flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-2 px-3 bg-black hover:bg-[#00F0FF]/20 border border-[#00F0FF] text-[#00F0FF] rounded font-bold text-xs transition flex items-center justify-center gap-2 disabled:opacity-50 uppercase"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${loadingAction ? 'animate-spin' : ''}`} />
                     MEDIR POTENCIA EN VIVO (dBm)
@@ -435,16 +435,16 @@ export default function SubscribersPage() {
                     <button
                       onClick={handleSuspendService}
                       disabled={loadingAction || selectedSub.status === 'SUSPENDIDO'}
-                      className="py-2 px-3 bg-red-950/80 hover:bg-red-900 border border-red-600 text-red-300 rounded font-bold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+                      className="py-2 px-3 bg-red-950/80 hover:bg-red-900 border border-red-600 text-red-300 rounded font-bold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-40 uppercase"
                     >
                       <Lock className="w-3.5 h-3.5" />
-                      SUSPENDER (MORA)
+                      SUSPENDER
                     </button>
 
                     <button
                       onClick={handleResumeService}
                       disabled={loadingAction || selectedSub.status === 'ACTIVO'}
-                      className="py-2 px-3 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500 text-emerald-300 rounded font-bold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+                      className="py-2 px-3 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500 text-emerald-300 rounded font-bold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-40 uppercase"
                     >
                       <Unlock className="w-3.5 h-3.5" />
                       RECONECTAR
