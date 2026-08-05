@@ -5,101 +5,71 @@ import NavigationHeader from '@/components/NavigationHeader';
 import { 
   Settings, 
   Server, 
-  Cpu, 
-  ShieldAlert, 
   ShieldCheck, 
-  Key, 
+  Zap, 
   Radio, 
   Terminal, 
+  Activity, 
   RefreshCw, 
   CheckCircle2, 
   AlertTriangle, 
-  CornerDownRight,
-  Zap,
-  Globe,
-  Sliders
+  Lock, 
+  Cpu, 
+  HardDrive,
+  CornerDownRight
 } from 'lucide-react';
 
-interface NetworkDeviceItem {
-  id: string;
-  name: string;
-  brand: 'MIKROTIK' | 'HUAWEI' | 'ZTE' | 'VSOL';
-  ipAddress: string;
-  managementPort: number;
-  protocol: 'SSH' | 'API_REST' | 'SNMP' | 'TR069';
-  status: 'ONLINE' | 'STANDBY' | 'OFFLINE';
-  activeConns: number;
+interface OltPonPort {
+  portId: number;
+  activeOnts: number;
+  txPowerDbm: number;
+  status: 'ONLINE' | 'WARNING' | 'ALARM';
 }
 
-export default function NetworkConfigPage() {
+export default function ConfigurationPage() {
   const [useHardwareMocks, setUseHardwareMocks] = useState(true);
+  const [selectedPonPort, setSelectedPonPort] = useState<number>(0);
+  const [routerOsInput, setRouterOsInput] = useState('');
   
-  const [devices, setDevices] = useState<NetworkDeviceItem[]>([
-    {
-      id: '1',
-      name: 'ROUTER-CORE-MIKROTIK-01',
-      brand: 'MIKROTIK',
-      ipAddress: '10.0.0.1',
-      managementPort: 8728,
-      protocol: 'API_REST',
-      status: 'ONLINE',
-      activeConns: 4892,
-    },
-    {
-      id: '2',
-      name: 'OLT-CENTRAL-HUAWEI',
-      brand: 'HUAWEI',
-      ipAddress: '10.0.1.10',
-      managementPort: 22,
-      protocol: 'SSH',
-      status: 'ONLINE',
-      activeConns: 1024,
-    },
-    {
-      id: '3',
-      name: 'OLT-NORTE-ZTE',
-      brand: 'ZTE',
-      ipAddress: '10.0.2.10',
-      managementPort: 22,
-      protocol: 'SSH',
-      status: 'ONLINE',
-      activeConns: 512,
-    },
-    {
-      id: '4',
-      name: 'OLT-SUR-VSOL',
-      brand: 'VSOL',
-      ipAddress: '10.0.3.10',
-      managementPort: 161,
-      protocol: 'SNMP',
-      status: 'STANDBY',
-      activeConns: 1840,
-    },
+  const [terminalLogs, setTerminalLogs] = useState<string[]>([
+    '// MIKROTIK_ROUTEROS_v7.14_CLI_SESSION_OPENED',
+    '[admin@CCR2116-Core-NOC] > /system/resource/print',
+    '--> uptime: 42d 14h 22m',
+    '--> cpu-load: 8%',
+    '--> free-memory: 3412MiB / 4096MiB',
+    '--> board-name: CCR2116-12G-4S+',
   ]);
 
-  const [selectedDevice, setSelectedDevice] = useState<NetworkDeviceItem | null>(devices[0]);
-  const [configLogs, setConfigLogs] = useState<string[]>([
-    '// HARDWARE_CONFIG_MODULE_INITIALIZED: DEDSEC_NETWORK_CONTROL',
-    '// SAFETY_ENGINE: USE_HARDWARE_MOCKS="true" (100% AISLADO EN DEV)...',
-  ]);
-  const [testingConn, setTestingConn] = useState(false);
+  const ponPortsList: OltPonPort[] = [
+    { portId: 0, activeOnts: 64, txPowerDbm: 2.4, status: 'ONLINE' },
+    { portId: 1, activeOnts: 58, txPowerDbm: 2.3, status: 'ONLINE' },
+    { portId: 2, activeOnts: 62, txPowerDbm: 2.5, status: 'ONLINE' },
+    { portId: 3, activeOnts: 48, txPowerDbm: 1.8, status: 'WARNING' },
+    { portId: 4, activeOnts: 64, txPowerDbm: 2.4, status: 'ONLINE' },
+    { portId: 5, activeOnts: 51, txPowerDbm: 2.2, status: 'ONLINE' },
+    { portId: 6, activeOnts: 32, txPowerDbm: 2.1, status: 'ONLINE' },
+    { portId: 7, activeOnts: 0, txPowerDbm: 0.0, status: 'ALARM' },
+  ];
 
-  const handleTestConnection = () => {
-    if (!selectedDevice) return;
-    setTestingConn(true);
-    setConfigLogs((prev) => [
-      ...prev,
-      `📡 // PINGING_DEVICE: ${selectedDevice.name} (${selectedDevice.ipAddress}:${selectedDevice.managementPort})...`,
-      `🔑 // TESTING_PROTOCOL: ${selectedDevice.protocol}...`,
-    ]);
+  const handleCommandExecute = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!routerOsInput.trim()) return;
 
-    setTimeout(() => {
-      setConfigLogs((prev) => [
-        ...prev,
-        `✔ // CONNECTION_SUCCESS: Handshake completado con ${selectedDevice.brand} (${selectedDevice.ipAddress}). Latencia: 1ms.`,
-      ]);
-      setTestingConn(false);
-    }, 1200);
+    const cmd = routerOsInput.trim();
+    const newLogs = [...terminalLogs, `[admin@CCR2116-Core-NOC] > ${cmd}`];
+
+    if (cmd.includes('/ppp/active')) {
+      newLogs.push('Flags: R - RADIUS, D - DYNAMIC', '0 R name="juan_perez" service=pppoe address=192.168.10.142 uptime=4d12h');
+    } else if (cmd.includes('/interface')) {
+      newLogs.push('Flags: X - DISABLED, R - RUNNING', '0 R name="sfp-sfpplus1" mtu=1500 mac-address=64:D1:54:88:12:01');
+    } else if (cmd.includes('/ping')) {
+      newLogs.push('SEQ HOST SIZE TTL TIME STATUS', '0 8.8.8.8 56 118 1.4ms', '1 8.8.8.8 56 118 1.2ms', 'sent=2 received=2 packet-loss=0%');
+    } else {
+      newLogs.push(`command executed: ${cmd} [OK]`);
+    }
+
+    setTerminalLogs(newLogs);
+    setRouterOsInput('');
   };
 
   return (
@@ -114,149 +84,137 @@ export default function NetworkConfigPage() {
       {/* Main Container */}
       <main className="flex-1 p-6 max-w-[1650px] w-full mx-auto space-y-6">
         
-        {/* Banner Network Config */}
-        <div className="p-4 bg-black border-2 border-[#EF4444] rounded flex justify-between items-center text-xs shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+        {/* Banner Safety Switch */}
+        <div className="p-4 bg-black border-2 border-[#EF4444] rounded flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs shadow-[0_0_15px_rgba(239,68,68,0.15)]">
           <div className="flex items-center gap-3">
-            <Settings className="w-5 h-5 text-[#EF4444]" />
+            <ShieldCheck className="w-6 h-6 text-[#EF4444]" />
             <div>
-              <span className="font-bold text-white uppercase">// MÓDULO RED: CENTRO DE CONFIGURACIÓN MIKROTIK & OLTs</span>
-              <p className="text-[11px] text-slate-400">Administra IPs, credenciales API/SSH y alterna el interruptor del Safety Engine entre Modo Mock y Producción Real.</p>
+              <span className="font-bold text-white uppercase">// MÓDULO 11: CONFIGURACIÓN DE RED & HARDWARE SAFETY ENGINE</span>
+              <p className="text-[11px] text-slate-400">Control de aislamiento de hardware y consola interactiva de RouterOS MikroTik & OLT Huawei.</p>
             </div>
-          </div>
-          <span className="text-[10px] bg-[#EF4444] text-white px-2.5 py-0.5 rounded font-bold uppercase">
-            SAFETY ENGINE: ACTIVE
-          </span>
-        </div>
-
-        {/* Safety Engine Environment Switch Card */}
-        <div className="p-5 bg-[#120808] border-2 border-[#EF4444] rounded flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-[#EF4444] animate-pulse" />
-              <h3 className="text-base font-bold text-white font-sans uppercase">// ENTORNO Y SEGURIDAD HARDWARE</h3>
-            </div>
-            <p className="text-slate-300">
-              Modo MOCK activo: Previene que comandos de corte o reinicio afecten a routers o equipos físicos en producción.
-            </p>
           </div>
 
           <div className="flex items-center gap-3">
+            <span className="text-[11px] text-slate-400 font-bold">ESTADO DEL MOTOR:</span>
             <button
-              onClick={() => {
-                setUseHardwareMocks(!useHardwareMocks);
-                setConfigLogs((prev) => [
-                  ...prev,
-                  `🛡️ // SAFETY_ENGINE_SWITCHED: Hardware Mocks = ${!useHardwareMocks ? 'ENABLED' : 'DISABLED'}`,
-                ]);
-              }}
-              className={`px-4 py-2 rounded font-bold text-xs uppercase tracking-wider transition border ${
-                useHardwareMocks
-                  ? 'bg-[#00FF66]/20 text-[#00FF66] border-[#00FF66]/50 hover:bg-[#00FF66]/30'
-                  : 'bg-red-950 text-red-400 border-red-800 hover:bg-red-900'
+              onClick={() => setUseHardwareMocks(!useHardwareMocks)}
+              className={`px-3 py-1.5 rounded font-bold uppercase text-xs flex items-center gap-2 transition ${
+                useHardwareMocks 
+                  ? 'bg-[#00FF66] text-black shadow-[0_0_10px_rgba(0,255,102,0.4)]' 
+                  : 'bg-red-600 text-white shadow-[0_0_10px_rgba(239,68,68,0.4)]'
               }`}
             >
-              {useHardwareMocks ? '🟢 MODO MOCK (DESARROLLO AISLADO)' : '🔴 HARDWARE REAL (PRODUCCIÓN EN VIVO)'}
+              <Zap className="w-4 h-4" />
+              {useHardwareMocks ? '🛡️ MODO MOCK (ISOLATED)' : '⚡ HARDWARE REAL (PROD)'}
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* Network Devices List (2 Columns) */}
-          <div className="lg:col-span-2 space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-white uppercase">
-              <span className="flex items-center gap-2">
-                <CornerDownRight className="w-4 h-4 text-[#EF4444]" />
-                Dispositivos de Red Registrados
+          {/* Visual Panel OLT Huawei SmartAX Chassis */}
+          <div className="p-5 bg-black border-2 border-[#EF4444] rounded space-y-4 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+            <div className="flex justify-between items-center border-b border-[#EF4444]/30 pb-3">
+              <div className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-[#EF4444]" />
+                <h3 className="font-bold text-white text-sm font-sans">Chasis OLT Huawei SmartAX MA5608T</h3>
+              </div>
+              <span className="text-[10px] bg-red-950 text-red-300 border border-red-800 px-2 py-0.5 rounded font-mono">
+                IP: 10.0.1.10 (GPON Board 0/1)
               </span>
-              <span className="text-slate-400">Total: {devices.length} Equipos</span>
             </div>
 
-            <div className="space-y-3">
-              {devices.map((dev) => (
-                <div
-                  key={dev.id}
-                  onClick={() => setSelectedDevice(dev)}
-                  className={`p-4 rounded border transition cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                    selectedDevice?.id === dev.id
-                      ? 'bg-[#1C0D0D] border-2 border-[#EF4444] shadow-[0_0_15px_rgba(239,68,68,0.2)]'
-                      : 'bg-[#0A0D15] border border-[#EF4444]/30 hover:border-[#EF4444]/60'
+            <p className="text-xs text-slate-400">
+              Selecciona un puerto GPON PON para inspeccionar métricas ópticas en tiempo real:
+            </p>
+
+            {/* 8 PON Ports Graphical Grid */}
+            <div className="grid grid-cols-4 gap-2 text-xs font-mono">
+              {ponPortsList.map((pon) => (
+                <button
+                  key={pon.portId}
+                  onClick={() => setSelectedPonPort(pon.portId)}
+                  className={`p-3 rounded border text-left flex flex-col justify-between transition ${
+                    selectedPonPort === pon.portId
+                      ? 'bg-[#1F0909] border-2 border-[#EF4444] shadow-[0_0_12px_rgba(239,68,68,0.3)]'
+                      : 'bg-[#0A0D15] border-slate-800 hover:border-red-900'
                   }`}
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="px-2.5 py-0.5 bg-black text-[#EF4444] border border-[#EF4444]/40 rounded font-bold">
-                        {dev.brand}
-                      </span>
-                      <span className="text-white font-sans font-bold">{dev.name}</span>
-                    </div>
-
-                    <p className="text-xs text-slate-400">
-                      IP: <span className="text-cyan-300">{dev.ipAddress}</span> • Puerto: {dev.managementPort} ({dev.protocol})
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white">PON {pon.portId}</span>
+                    <span className={`w-2 h-2 rounded-full ${
+                      pon.status === 'ONLINE' ? 'bg-[#00FF66] shadow-[0_0_6px_#00FF66]' :
+                      pon.status === 'WARNING' ? 'bg-amber-400 shadow-[0_0_6px_#f59e0b]' :
+                      'bg-red-600 shadow-[0_0_6px_#ef4444]'
+                    }`} />
                   </div>
 
-                  <div className="flex items-center gap-4 text-right">
-                    <div>
-                      <p className="text-[10px] text-slate-400">// ACTIVE_SESSIONS</p>
-                      <p className="text-xs font-bold text-white">{dev.activeConns} Sesiones</p>
-                    </div>
-
-                    <span className={`px-3 py-1 rounded text-xs font-bold ${
-                      dev.status === 'ONLINE' ? 'bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40' :
-                      'bg-amber-950 text-amber-400 border border-amber-800'
-                    }`}>
-                      {dev.status}
-                    </span>
+                  <div className="mt-2 text-[10px]">
+                    <span className="text-slate-400 block">ONTs: {pon.activeOnts}/64</span>
+                    <span className="text-red-400 font-bold">{pon.txPowerDbm} dBm</span>
                   </div>
-                </div>
+                </button>
               ))}
+            </div>
+
+            {/* Selected PON Port Details */}
+            <div className="p-3 bg-[#0D080A] rounded border border-[#EF4444]/30 space-y-2 text-xs">
+              <p className="text-[10px] text-slate-400 uppercase font-bold">// METRICAS PUERTO PON {selectedPonPort}</p>
+              <div className="grid grid-cols-3 gap-2 text-white font-mono text-[11px]">
+                <div>
+                  <span className="text-[10px] text-slate-500 block">ONTs Activas:</span>
+                  <strong>{ponPortsList[selectedPonPort].activeOnts} / 64</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block">Potencia TX OLT:</span>
+                  <strong className="text-[#00FF66]">+{ponPortsList[selectedPonPort].txPowerDbm} dBm</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block">Estado Slot:</span>
+                  <strong className="text-red-400">{ponPortsList[selectedPonPort].status}</strong>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Device Inspector & Connectivity Test Panel */}
-          {selectedDevice && (
-            <div className="p-5 bg-black border-2 border-[#EF4444] rounded flex flex-col justify-between space-y-5 shadow-[0_0_20px_rgba(239,68,68,0.15)]">
-              <div className="space-y-4">
-                <div className="border-b border-[#EF4444]/30 pb-3 flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] text-cyan-400 uppercase">// DEVICE_INSPECTOR</span>
-                    <h3 className="text-base font-bold text-white font-sans">{selectedDevice.name}</h3>
-                    <p className="text-xs text-slate-400">IP: {selectedDevice.ipAddress}</p>
-                  </div>
-                  <span className="text-xs font-bold text-[#EF4444] bg-[#EF4444]/10 px-2.5 py-1 rounded border border-[#EF4444]/40">
-                    {selectedDevice.protocol}
-                  </span>
+          {/* Interactive MikroTik RouterOS Console CLI */}
+          <div className="p-5 bg-black border-2 border-[#EF4444] rounded flex flex-col justify-between space-y-4 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-[#EF4444]/30 pb-3">
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-5 h-5 text-[#EF4444]" />
+                  <h3 className="font-bold text-white text-sm font-sans">MikroTik RouterOS v7.14 CLI (CCR2116)</h3>
                 </div>
-
-                {/* Connection Test Controls */}
-                <div className="space-y-2">
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">// PRUEBAS DE CONEXIÓN Y DIAGNÓSTICO:</p>
-
-                  <button
-                    onClick={handleTestConnection}
-                    disabled={testingConn}
-                    className="w-full py-2.5 px-3 bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold text-xs uppercase tracking-wider rounded transition flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${testingConn ? 'animate-spin' : ''}`} />
-                    PROBAR HANDSHAKE ({selectedDevice.protocol})
-                  </button>
-                </div>
-
-                {/* Console Log */}
-                <div className="bg-[#05070A] p-2.5 rounded border border-[#EF4444]/30 h-32 overflow-y-auto text-[10px] space-y-1 font-mono text-[#EF4444]">
-                  {configLogs.map((log, i) => (
-                    <p key={i} className="leading-tight">{log}</p>
-                  ))}
-                </div>
+                <span className="text-[10px] bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 px-2 py-0.5 rounded font-mono font-bold">
+                  API PORT 8728
+                </span>
               </div>
 
-              <div className="text-[10px] text-slate-500 border-t border-[#EF4444]/30 pt-2 flex justify-between">
-                <span>Protocolo: <strong>{selectedDevice.protocol}</strong></span>
-                <span className="text-[#EF4444]">STATE: ACTIVE</span>
+              {/* Console Output */}
+              <div className="bg-[#05070A] p-3 rounded border border-[#EF4444]/30 h-64 overflow-y-auto font-mono text-[11px] text-[#EF4444] space-y-1">
+                {terminalLogs.map((log, i) => (
+                  <p key={i} className="leading-tight">{log}</p>
+                ))}
               </div>
+
+              {/* Terminal Command Input */}
+              <form onSubmit={handleCommandExecute} className="flex gap-2">
+                <span className="text-white font-bold text-xs py-1.5 whitespace-nowrap">[admin@MikroTik] &gt;</span>
+                <input
+                  type="text"
+                  value={routerOsInput}
+                  onChange={(e) => setRouterOsInput(e.target.value)}
+                  placeholder="ej. /ppp/active/print, /interface/print, /ping 8.8.8.8"
+                  className="flex-1 bg-black border border-[#EF4444]/40 rounded px-3 py-1.5 text-xs text-[#EF4444] focus:outline-none focus:border-[#EF4444] font-mono"
+                />
+              </form>
             </div>
-          )}
+
+            <div className="text-[10px] text-slate-500 border-t border-[#EF4444]/30 pt-2 flex justify-between">
+              <span>Core IP: <strong>10.0.0.1 (RouterOS)</strong></span>
+              <span className="text-[#EF4444]">CPU LOAD: 8%</span>
+            </div>
+          </div>
 
         </div>
 
