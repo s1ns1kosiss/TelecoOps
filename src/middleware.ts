@@ -3,55 +3,40 @@ import type { NextRequest } from 'next/server';
 import { isRateLimited } from '@/lib/rate_limit';
 
 /**
- * MIDDLEWARE DE SEGURIDAD GLOBAL & PROTECCIÓN ANTI-ATAQUES
+ * GLOBAL SECURITY MIDDLEWARE (OWASP & CLOUDFLARE PROTECTION)
+ * Inyecta cabeceras de seguridad OWASP, valida cabeceras de Cloudflare (cf-connecting-ip)
+ * y ejecuta Rate Limiting Anti-DDoS en todas las rutas API.
  */
 export function middleware(request: NextRequest) {
-  // Obtiene la IP cliente de los encabezados del proxy / CDN (Vercel/Cloudflare/AWS)
+  // Extrae la IP cliente real proveniente del Proxy de Cloudflare
   const clientIp = 
-    request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
-    request.headers.get('x-real-ip') || 
+    request.headers.get('cf-connecting-ip') || 
+    request.headers.get('x-forwarded-for')?.split(',')[0] || 
     '127.0.0.1';
 
-  // 1. PROTECCIÓN ANTI-DDoS Y FUERZA BRUTA (Rate Limiting)
-  const rateLimitStatus = isRateLimited(clientIp);
-  if (rateLimitStatus.limited) {
-    return new NextResponse(
-      JSON.stringify({
-        success: false,
-        error: '🚨 ACCESO BLOQUEADO: Demasiadas solicitudes en un periodo corto (Posible ataque DDoS/Fuerza Bruta).',
-        retryAfterMs: rateLimitStatus.resetTimeMs,
-      }),
-      {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': Math.ceil(rateLimitStatus.resetTimeMs / 1000).toString(),
-        },
-      }
-    );
+  // Aplica Anti-DDoS Rate Limiting en rutas /api/*
+  if (request.nextUrl.pathname.startsWith('/api')) {
+    const rateCheck = isRateLimited(clientIp);
+    if (rateCheck.limited) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: 'Anti-DDoS: Demasiadas solicitudes. Intente en 1 minuto.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
   }
 
   const response = NextResponse.next();
 
-  // 2. CABECERA DE RATE LIMITING
-  response.headers.set('X-RateLimit-Remaining', rateLimitStatus.remaining.toString());
-
-  // 3. CABECERAS DE PROTECCIÓN HTTP OWASP
-  response.headers.set('X-Content-Type-Options', 'nosniff');
+  // Inyecta Cabeceras de Seguridad OWASP & Cloudflare
   response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-  // 4. CONTROL DE ORIGEN CORS PARA ENDPOINTS API
-  if (request.nextUrl.pathname.startsWith('/api/')) {
-    response.headers.set('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*');
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-tenant-id');
-  }
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(self)');
 
   return response;
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/api/:path*', '/((?!_next/static|_next/image|favicon.ico).*)'],
 };
